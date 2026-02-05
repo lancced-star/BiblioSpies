@@ -11,7 +11,7 @@
         
         // Affichage du message de remerciement (Consigne)
         echo "<h1>Merci " . $nom . " !</h1>";
-        echo "<p>Votre message a bien été envoyé à l'équipe Biblio'Steak.</p>";
+        echo "<p>Votre message a bien été envoyé à l'équipe BiblioSpies.</p>";
         
     } else {
         // Cas où l'utilisateur arrive ici sans envoyer le formulaire

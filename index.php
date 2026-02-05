@@ -20,7 +20,7 @@ $livre = $req->fetchAll(); ?>
 
   <section class="search">
     <h2 class="visually-hidden">Recherche</h2>
-    <input type="text" id="searchInput" placeholder="Rechercher un livre, une recette…">
+    <input type="text" id="searchInput" placeholder="Rechercher un livre, une enquête">
     <button id="searchBtn">Rechercher</button>
   </section>
 
@@ -29,7 +29,7 @@ $livre = $req->fetchAll(); ?>
   </div>
 
   <section id="livre">
-    <h2>Nos livres de cuisines </h2>
+    <h2>Nos livres d'Espionnages </h2>
 
     <div class="grille-livres">
       <?php foreach ($livre as $book) {
