@@ -124,3 +124,39 @@ function updateThemeIcon(isDark) {
         `;
     }
 }
+
+// Profile menu toggle
+document.addEventListener('click', (e) => {
+    const btn = document.getElementById('profileBtn');
+    const menu = document.getElementById('profileMenu');
+    if (!btn || !menu) return;
+
+    if (btn.contains(e.target)) {
+        const shown = menu.classList.toggle('show');
+        btn.setAttribute('aria-expanded', shown ? 'true' : 'false');
+        menu.setAttribute('aria-hidden', shown ? 'false' : 'true');
+        return;
+    }
+
+    // click outside -> close
+    if (!menu.contains(e.target)) {
+        if (menu.classList.contains('show')) {
+            menu.classList.remove('show');
+            btn.setAttribute('aria-expanded', 'false');
+            menu.setAttribute('aria-hidden', 'true');
+        }
+    }
+});
+
+// close on Escape
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        const menu = document.getElementById('profileMenu');
+        const btn = document.getElementById('profileBtn');
+        if (menu && menu.classList.contains('show')) {
+            menu.classList.remove('show');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+            menu.setAttribute('aria-hidden', 'true');
+        }
+    }
+});

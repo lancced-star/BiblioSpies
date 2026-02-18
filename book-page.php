@@ -63,30 +63,30 @@ try {
       <?php if (!empty($book['editeur'])): ?><p style="margin-top:6px;color:var(--muted);">Éditeur: <?php echo htmlspecialchars($book['editeur']); ?></p><?php endif; ?>
       <?php if (!empty($book['nbpages'])): ?><p style="margin-top:6px;color:var(--muted);"><?php echo htmlspecialchars($book['nbpages']); ?> pages</p><?php endif; ?>
 
-      <section style="margin-top:18px;color: #4b3a2b;line-height:1.7;">
+      <section style="margin-top:18px;color: var(--muted);line-height:1.7;">
         <?php echo nl2br(htmlspecialchars($book['resume'] ?? '')); ?>
       </section>
 
       <?php $saved = isset($_GET['saved']) ? $_GET['saved'] : null; $deleted = isset($_GET['deleted']) ? $_GET['deleted'] : null; $edited = isset($_GET['edited']) ? $_GET['edited'] : null; ?>
       <section style="margin-top:20px;">
         <?php if ($saved === '1'): ?>
-          <div id="msg-saved" class="notification-fade" style="padding:12px;border-radius:8px;background:#e6ffed;color:#1a7f37;border:1px solid #b7f0c9;max-width:720px;">Merci — votre avis a été enregistré.</div>
+          <div id="msg-saved" class="notification-fade" style="padding:12px;border-radius:8px;background:var(--card);color:var(--accent);border:1px solid var(--accent);max-width:720px;">Merci — votre avis a été enregistré.</div>
         <?php else: ?>
           <?php if ($saved === '0'): ?>
-            <div id="msg-saved-fail" class="notification-fade" style="padding:12px;border-radius:8px;background:#fff2f2;color:#822020;border:1px solid #f3c2c2;max-width:720px;margin-bottom:12px;">Erreur lors de l'enregistrement. Veuillez réessayer.</div>
+            <div id="msg-saved-fail" class="notification-fade" style="padding:12px;border-radius:8px;background:var(--card);color:var(--accent-2);border:1px solid var(--accent-2);max-width:720px;margin-bottom:12px;">Erreur lors de l'enregistrement. Veuillez réessayer.</div>
           <?php endif; ?>
 
-          <button id="toggleReviewBtn" style="background:var(--accent);color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer;">Déposer un avis</button>
+          <button id="toggleReviewBtn" style="background:var(--accent);color:var(--card);border:none;padding:10px 14px;border-radius:8px;cursor:pointer;">Déposer un avis</button>
 
-          <form id="reviewForm" action="save_review.php" method="post" style="display:none;margin-top:14px;max-width:720px;">
+          <form id="reviewForm" class="review-form" action="save_review.php" method="post" style="display:none;margin-top:14px;max-width:720px;">
             <input type="hidden" name="isbn" value="<?php echo htmlspecialchars($book['isbn']); ?>">
             <div style="margin-bottom:8px;">
               <label for="review_name" style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Votre nom (facultatif)</label>
-              <input id="review_name" name="name" type="text" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;">
+              <input id="review_name" name="name" type="text" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);">
             </div>
             <div style="margin-bottom:8px;">
               <label for="review_rating" style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Note</label>
-              <select id="review_rating" name="rating" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+              <select id="review_rating" name="rating" style="padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);">
                 <option value="5">5 — Excellent</option>
                 <option value="4">4 — Très bien</option>
                 <option value="3">3 — Bien</option>
@@ -96,11 +96,11 @@ try {
             </div>
             <div style="margin-bottom:8px;">
               <label for="review_text" style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Votre avis</label>
-              <textarea id="review_text" name="review" rows="5" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;" required></textarea>
+              <textarea id="review_text" name="review" rows="5" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);" required></textarea>
             </div>
             <div>
-              <button type="submit" style="background:#2b6cb0;color:#fff;padding:10px 14px;border-radius:8px;border:none;cursor:pointer;">Envoyer l'avis</button>
-              <button type="button" id="cancelReviewBtn" style="margin-left:8px;background:#eee;color:#222;padding:10px 14px;border-radius:8px;border:none;cursor:pointer;">Annuler</button>
+              <button type="submit" style="background:var(--accent);color:var(--card);padding:10px 14px;border-radius:8px;border:none;cursor:pointer;">Envoyer l'avis</button>
+              <button type="button" id="cancelReviewBtn" style="margin-left:8px;background:var(--muted);color:var(--card);padding:10px 14px;border-radius:8px;border:none;cursor:pointer;">Annuler</button>
             </div>
           </form>
 
@@ -127,21 +127,21 @@ try {
       <section style="margin-top:20px;max-width:720px;">
         <h2 style="margin:0 0 12px 0;color:var(--accent);">Avis</h2>
         <?php if ($deleted === '1'): ?>
-          <div id="msg-deleted" class="notification-fade" style="padding:10px;border-radius:8px;background:#fff2f2;color:#822020;border:1px solid #f3c2c2;margin-bottom:12px;">Avis supprimé.</div>
+          <div id="msg-deleted" class="notification-fade" style="padding:10px;border-radius:8px;background:var(--card);color:var(--accent-2);border:1px solid var(--accent-2);margin-bottom:12px;">Avis supprimé.</div>
         <?php elseif ($deleted === '0'): ?>
-          <div id="msg-deleted-fail" class="notification-fade" style="padding:10px;border-radius:8px;background:#fff2f2;color:#822020;border:1px solid #f3c2c2;margin-bottom:12px;">Impossible de supprimer l'avis.</div>
+          <div id="msg-deleted-fail" class="notification-fade" style="padding:10px;border-radius:8px;background:var(--card);color:var(--accent-2);border:1px solid var(--accent-2);margin-bottom:12px;">Impossible de supprimer l'avis.</div>
         <?php endif; ?>
         <?php if ($edited === '1'): ?>
-          <div id="msg-edited" class="notification-fade" style="padding:10px;border-radius:8px;background:#e6ffed;color:#1a7f37;border:1px solid #b7f0c9;margin-bottom:12px;">Avis modifié.</div>
+          <div id="msg-edited" class="notification-fade" style="padding:10px;border-radius:8px;background:var(--card);color:var(--accent);border:1px solid var(--accent);margin-bottom:12px;">Avis modifié.</div>
         <?php elseif ($edited === '0'): ?>
-          <div id="msg-edited-fail" class="notification-fade" style="padding:10px;border-radius:8px;background:#fff2f2;color:#822020;border:1px solid #f3c2c2;margin-bottom:12px;">Impossible de modifier l'avis.</div>
+          <div id="msg-edited-fail" class="notification-fade" style="padding:10px;border-radius:8px;background:var(--card);color:var(--accent-2);border:1px solid var(--accent-2);margin-bottom:12px;">Impossible de modifier l'avis.</div>
         <?php endif; ?>
 
         <?php if (empty($reviews)): ?>
           <p style="color:var(--muted);">Aucun avis pour le moment.</p>
         <?php else: ?>
           <?php foreach ($reviews as $r): $rid = (int)$r['id']; ?>
-            <div class="review-item" style="border:1px solid #eee;padding:12px;border-radius:8px;margin-bottom:10px;position:relative;">
+            <div class="review-item" style="border:1px solid var(--muted);padding:12px;border-radius:8px;margin-bottom:10px;position:relative;background:var(--card);">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <div>
                   <strong><?php echo htmlspecialchars($r['name'] ?: 'Anonyme'); ?></strong>
@@ -151,7 +151,7 @@ try {
                   <div style="color:#f6b01e;font-weight:700;"><?php echo str_repeat('★', max(1, min(5, (int)$r['rating']))); ?></div>
                   <div class="review-menu" style="position:relative;">
                     <button type="button" class="menu-toggle" data-id="<?php echo $rid; ?>" aria-expanded="false" style="background:transparent;border:none;font-size:18px;cursor:pointer;">⋯</button>
-                    <div class="menu-list" id="menu-<?php echo $rid; ?>" style="display:none;position:absolute;right:0;top:22px;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,0.08);">
+                    <div class="menu-list" id="menu-<?php echo $rid; ?>" style="display:none;position:absolute;right:0;top:22px;background:var(--card);border:1px solid var(--muted);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,0.08);">
                       <button type="button" class="menu-edit" data-id="<?php echo $rid; ?>" style="display:block;padding:8px 12px;background:transparent;border:none;cursor:pointer;width:100%;text-align:left;">Modifier</button>
                       <form method="post" action="delete_review.php" class="delete-form" style="margin:0;">
                         <input type="hidden" name="id" value="<?php echo $rid; ?>">
@@ -163,18 +163,18 @@ try {
                 </div>
               </div>
 
-              <div class="review-content" id="content-<?php echo $rid; ?>" style="margin-top:8px;color:#333;"><?php echo nl2br(htmlspecialchars($r['review'])); ?></div>
+              <div class="review-content" id="content-<?php echo $rid; ?>" style="margin-top:8px;"><?php echo nl2br(htmlspecialchars($r['review'])); ?></div>
 
-              <form class="edit-form" id="edit-<?php echo $rid; ?>" action="edit_review.php" method="post" style="display:none;margin-top:10px;">
+              <form class="edit-form review-form" id="edit-<?php echo $rid; ?>" action="edit_review.php" method="post" style="display:none;margin-top:10px;">
                 <input type="hidden" name="id" value="<?php echo $rid; ?>">
                 <input type="hidden" name="isbn" value="<?php echo htmlspecialchars($book['isbn']); ?>">
                 <div style="margin-bottom:8px;">
                   <label style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Votre nom (facultatif)</label>
-                  <input name="name" type="text" value="<?php echo htmlspecialchars($r['name']); ?>" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;">
+                  <input name="name" type="text" value="<?php echo htmlspecialchars($r['name']); ?>" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);">
                 </div>
                 <div style="margin-bottom:8px;">
                   <label style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Note</label>
-                  <select name="rating" style="padding:8px;border-radius:6px;border:1px solid #ddd;">
+                  <select name="rating" style="padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);">
                     <?php for ($i=5;$i>=1;$i--): ?>
                       <option value="<?php echo $i; ?>" <?php echo ((int)$r['rating']=== $i)?'selected':''; ?>><?php echo $i; ?> — <?php echo ($i===5)?'Excellent':(($i===4)?'Très bien':(($i===3)?'Bien':(($i===2)?'Moyen':'Mauvais'))); ?></option>
                     <?php endfor; ?>
@@ -182,11 +182,11 @@ try {
                 </div>
                 <div style="margin-bottom:8px;">
                   <label style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Votre avis</label>
-                  <textarea name="review" rows="4" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ddd;" required><?php echo htmlspecialchars($r['review']); ?></textarea>
+                  <textarea name="review" rows="4" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);" required><?php echo htmlspecialchars($r['review']); ?></textarea>
                 </div>
                 <div>
-                  <button type="submit" style="background:#2b6cb0;color:#fff;padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Enregistrer</button>
-                  <button type="button" class="edit-cancel" data-id="<?php echo $rid; ?>" style="margin-left:8px;background:#eee;color:#222;padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Annuler</button>
+                  <button type="submit" style="background:var(--accent);color:var(--card);padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Enregistrer</button>
+                  <button type="button" class="edit-cancel" data-id="<?php echo $rid; ?>" style="margin-left:8px;background:var(--muted);color:var(--card);padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Annuler</button>
                 </div>
               </form>
             </div>
