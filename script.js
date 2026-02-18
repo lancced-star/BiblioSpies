@@ -1,4 +1,4 @@
-const navToggle = document.getElementById('navToggle');
+const navToggle = document.getElementById('navToggle'); 
 const navLinks = document.querySelector('.nav-links');
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -43,26 +43,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const closeBtn = document.getElementById('modalClose');
         if (closeBtn) {
             closeBtn.addEventListener('click', fermerModal);
-            // allow keyboard activation
+            
             closeBtn.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); fermerModal(); } });
-            // focus the button for accessibility
+            
             closeBtn.focus();
         }
 
-        // close on Escape
         const escHandler = (ev) => { if (ev.key === 'Escape') { fermerModal(); } };
         document.addEventListener('keydown', escHandler, { once: false });
 
-        // ensure we remove listener when modal closed
+      
         const originalFermer = fermerModal;
         function fermerModalWrapper() {
             document.removeEventListener('keydown', escHandler);
             originalFermer();
         }
-        // replace fermerModal with wrapper in this scope by binding to closeBtn and outside click
+        
         if (closeBtn) closeBtn._fermerWrapper = fermerModalWrapper;
 
-        // override global fermerModal to use wrapper while modal open
+       
         window._modalFermerBackup = window._modalFermerBackup || fermerModal;
         window._modalFermer = fermerModalWrapper;
 
@@ -78,12 +77,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#039;');
     }
 
-    // Close when clicking outside
+  
     window.addEventListener('click', (event) => {
         if (event.target === bookModal) { fermerModal(); }
     });
 
-    // Book links now navigate to `book-page.php?isbn=...` directly; no AJAX interception.
+ 
 
 });
 
@@ -91,4 +90,37 @@ if (navToggle && navLinks) {
     navToggle.addEventListener('click', () => {
         navLinks.classList.toggle('show');
     });
+}
+
+// Theme toggle functionality
+const themeToggleBtn = document.getElementById('theme-toggle');
+const themeIcon = document.getElementById('theme-icon');
+
+if (themeToggleBtn) {
+    // Check for saved theme preference or default to light mode
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    if (currentTheme === 'dark') {
+        document.body.classList.add('dark');
+        updateThemeIcon(true);
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+        const isDark = document.body.classList.contains('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        updateThemeIcon(isDark);
+    });
+}
+
+function updateThemeIcon(isDark) {
+    if (isDark) {
+        themeIcon.innerHTML = `
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        `;
+    } else {
+        themeIcon.innerHTML = `
+            <circle cx="12" cy="12" r="5"></circle>
+            <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
+        `;
+    }
 }
