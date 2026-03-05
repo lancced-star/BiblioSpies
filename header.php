@@ -55,13 +55,28 @@ require 'connexion-bdd.php';
         ?>
 
         <div class="profile-container">
-          <button id="profileBtn" class="profile-btn" aria-haspopup="true" aria-expanded="false">
+          <button id="profileBtn" class="profile-btn" aria-haspopup="true" aria-expanded="false" style="position:relative;">
             <img src="<?php echo htmlspecialchars($avatarPath); ?>" alt="Profil">
+            <?php if (!empty($_SESSION['is_admin'])): ?>
+              <span style="
+                position:absolute; bottom:-4px; right:-4px;
+                background:linear-gradient(135deg,#1a1a2e,#0f3460);
+                color:#e8c97a; font-size:0.55rem; font-weight:800;
+                padding:2px 5px; border-radius:10px;
+                border:1.5px solid #e8c97a;
+                letter-spacing:0.5px; white-space:nowrap;
+                pointer-events:none;
+              ">🛡️ ADMIN</span>
+            <?php endif; ?>
           </button>
+
           <div id="profileMenu" class="profile-menu" aria-hidden="true">
             <?php if (isset($_SESSION['user_id'])): ?>
-              <a href="profile.php">Mon profil</a>
-              <a href="deconnexion-bdd.php">Déconnexion</a>
+              <?php if (!empty($_SESSION['is_admin'])): ?>
+                <a href="admin_dashboard.php" style="color:var(--accent-2); font-weight:600;">⚙️ Dashboard admin</a>
+              <?php endif; ?>
+              <a href="profile.php">👤 Mon profil</a>
+              <a href="deconnexion-bdd.php">🔐 Déconnexion</a>
             <?php else: ?>
               <a href="login.php">Se connecter</a>
               <a href="register.php">S'inscrire</a>

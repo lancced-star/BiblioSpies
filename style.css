@@ -75,6 +75,33 @@ a { text-decoration: none; transition: var(--transition); }
   display: none !important; 
 }
 
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-logout {
+  background: #c0392b;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.btn-logout:hover { background: #a93226; }
+
+.btn-edit {
+  display: inline-block;
+  margin-top: 12px;
+  background: #2c3e50;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+}
+
 .profile-btn { 
   background: transparent; 
   border: none; 

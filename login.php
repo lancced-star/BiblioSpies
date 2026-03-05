@@ -1,96 +1,96 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) session_start();
+require 'connexion-bdd.php';
 
-// Connexion à la base de données
-$host = "localhost";
-$user = "root";
-$pass = "";
-$dbname = "bibliospies";
+if (isset($_SESSION['user_id'])) { header('Location: index.php'); exit; }
 
-$conn = new mysqli($host, $user, $pass, $dbname);
+$erreur = null;
 
-if ($conn->connect_error) {
-    die("Erreur de connexion à la base de données : " . $conn->connect_error);
-}
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username  = trim($_POST['username']   ?? '');
+    $carteCode = trim($_POST['carte_code'] ?? '');
 
-$erreurs = [];
-
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-
-    // On force le type string pour éviter l'avertissement Intelephense
-    $email = (string) trim($_POST["email"] ?? "");
-    $motdepasse = (string) trim($_POST["motdepasse"] ?? "");
-
-    if (empty($email) || empty($motdepasse)) {
-        $erreurs[] = "Tous les champs sont obligatoires.";
+    if (empty($username) || empty($carteCode)) {
+        $erreur = 'Les deux champs sont obligatoires.';
     } else {
+        $stmt = $bdd->prepare('SELECT id, prenom, nom, username, is_admin FROM users WHERE username = :username AND carte_code = :carte_code');
+        $stmt->execute([':username' => $username, ':carte_code' => $carteCode]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Requête préparée pour éviter les injections SQL
-        $stmt = $conn->prepare("SELECT id, motdepasse FROM utilisateurs WHERE email = ?");
-        $stmt->bind_param("s", $email);
-        $stmt->execute();
-        $stmt->store_result();
-if ($stmt->num_rows === 1) {
-
-            // Initialisation pour éviter les warnings statiques et l'usage de get_result() incorrect
-            $id = null;
-            $mdp_bdd = null;
-            $stmt->bind_result($id, $mdp_bdd);
-            $stmt->fetch();
-
-            // Vérification du mot de passe hashé
-            if ($mdp_bdd !== null && password_verify($motdepasse, $mdp_bdd)) {
-
-                // Connexion réussie
-                $_SESSION["utilisateur_id"] = $id;
-                $_SESSION["utilisateur_email"] = $email;
-
-                header("Location: dashboard.php");
-                exit;
-
-            } else {
-                $erreurs[] = "Mot de passe incorrect.";
-            }
-
+        if ($user) {
+            // Connexion réussie
+            $_SESSION['user_id']   = $user['id'];
+            $_SESSION['username']  = $user['username'];
+            $_SESSION['is_admin']  = $user['is_admin'];
+            header('Location: index.php');
+            exit;
         } else {
-            $erreurs[] = "Aucun compte trouvé avec cet e-mail.";
+            $erreur = '❌ Pseudo ou code de carte incorrect.';
         }
-
-        $stmt->close();
     }
 }
 
-$conn->close();
+require 'header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Connexion</title>
-</head>
-<body>
+<main class="auth-wrapper">
+  <section class="auth-card">
 
-<h2>Connexion</h2>
+    <div class="auth-header" style="text-align:center; margin-bottom:1.5rem;">
+      <h2>🔐 Accès aux archives</h2>
+      <p style="color:var(--muted); font-size:0.88rem; margin-top:6px;">
+        Entrez votre pseudo et votre code de carte d'agent
+      </p>
+    </div>
 
-<?php
-if (!empty($erreurs)) {
-    echo "<ul>";
-    foreach ($erreurs as $e) {
-        echo "<li style='color:red;'>" . $e . "</li>";
-    }
-    echo "</ul>";
-}
-?>
+    <?php if ($erreur): ?>
+      <div style="background:#f8d7da; color:#721c24; padding:12px 16px; border-radius:8px; margin-bottom:1.2rem; font-size:0.9rem;">
+        <?php echo htmlspecialchars($erreur); ?>
+      </div>
+    <?php endif; ?>
 
-<form method="POST" action="">
-    <label>Email :</label><br>
-    <input type="email" name="email" required><br><br>
+    <?php if (!empty($_SESSION['flash'])): ?>
+      <div style="background:#d4edda; color:#155724; padding:12px 16px; border-radius:8px; margin-bottom:1.2rem; font-size:0.9rem;">
+        <?php echo htmlspecialchars($_SESSION['flash']); unset($_SESSION['flash']); ?>
+      </div>
+    <?php endif; ?>
 
-    <label>Mot de passe :</label><br>
-    <input type="password" name="motdepasse" required><br><br>
+    <form method="post" action="login.php" class="auth-form">
 
-    <button type="submit">Se connecter</button>
-</form>
-</body>
-</html>
+      <div class="form-group">
+        <label for="username">Pseudo</label>
+        <input type="text" id="username" name="username"
+               placeholder="Ex : Agent007"
+               value="<?php echo htmlspecialchars($_POST['username'] ?? ''); ?>"
+               required autocomplete="username">
+      </div>
+
+      <div class="form-group">
+        <label for="carte_code">Code de carte</label>
+        <input type="text" id="carte_code" name="carte_code"
+               placeholder="Ex : BSP-AGE-4f9a2b1c"
+               style="font-family:'Courier New',monospace; letter-spacing:1px;"
+               required autocomplete="off">
+        <small style="color:var(--muted); font-size:0.78rem;">
+          Le code généré lors de votre inscription (format BSP-XXX-xxxxxxxx)
+        </small>
+      </div>
+
+      <button type="submit" class="btn btn--full" style="margin-top:10px;">
+        → Entrer dans les archives
+      </button>
+
+    </form>
+
+    <div class="auth-footer">
+      <p>Pas encore agent ? <a href="register.php">Créer mon identité</a></p>
+      <p style="margin-top:8px;"><a href="recuperation.php?mode=pseudo" style="color:var(--muted); font-size:0.85rem;">🕵️ Pseudo oublié ?</a></p>
+      <p style="margin-top:8px;"><a href="recuperation.php?mode=carte" style="color:var(--muted); font-size:0.85rem;">🗂️ Code de carte perdu ?</a></p>
+      <p style="margin-top:8px;"><a href="recuperation.php?mode=les-deux" style="color:var(--muted); font-size:0.85rem;">❓ Pseudo et code oubliés ?</a></p>
+
+    </div>
+
+  </section>
+</main>
+
+<?php require 'footer.php'; ?>
