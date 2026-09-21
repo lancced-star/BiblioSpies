@@ -51,7 +51,7 @@ $livres = $bdd->query($sql)->fetchAll(PDO::FETCH_ASSOC);
   <div style="overflow-x:auto;">
     <table style="width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);">
       <thead>
-        <tr style="background:var(--accent); color:white; text-align:left;">
+        <tr style="background:var(--accent-4); color:white; text-align:left;">
           <th style="padding:14px 16px;">Couverture</th>
           <th style="padding:14px 16px;">Titre</th>
           <th style="padding:14px 16px;">Auteur(s)</th>
@@ -81,10 +81,10 @@ $livres = $bdd->query($sql)->fetchAll(PDO::FETCH_ASSOC);
             <br><span style="font-size:0.75rem; color:var(--muted);">ISBN: <?php echo htmlspecialchars($livre['isbn']); ?></span>
           </td>
 
-          <td style="padding:10px 16px; font-size:0.9rem;"><?php echo htmlspecialchars($livre['auteurs'] ?? '—'); ?></td>
-          <td style="padding:10px 16px; font-size:0.9rem;"><?php echo htmlspecialchars($livre['editeur'] ?? '—'); ?></td>
-          <td style="padding:10px 16px; font-size:0.9rem;"><?php echo htmlspecialchars($livre['annee'] ?? '—'); ?></td>
-          <td style="padding:10px 16px; font-size:0.9rem;"><?php echo htmlspecialchars($livre['genre'] ?? '—'); ?></td>
+          <td style="padding:10px 16px; font-size:0.9rem; color:var(--accent);"><?php echo htmlspecialchars($livre['auteurs'] ?? '—'); ?></td>
+          <td style="padding:10px 16px; font-size:0.9rem; color:var(--accent);"><?php echo htmlspecialchars($livre['editeur'] ?? '—'); ?></td>
+          <td style="padding:10px 16px; font-size:0.9rem; color:var(--accent);"><?php echo htmlspecialchars($livre['annee'] ?? '—'); ?></td>
+          <td style="padding:10px 16px; font-size:0.9rem; color:var(--accent);"><?php echo htmlspecialchars($livre['genre'] ?? '—'); ?></td>
 
           <!-- Actions -->
           <td style="padding:10px 16px; text-align:center; white-space:nowrap;">

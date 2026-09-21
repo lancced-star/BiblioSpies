@@ -74,7 +74,7 @@ $nbNonLus = $bdd->query('SELECT COUNT(*) FROM contacts WHERE lu = 0')->fetchColu
     ?>
       <a href="admin_contacts.php?filtre=<?php echo $val; ?>"
          style="padding:7px 18px; border-radius:20px; font-size:0.85rem; font-weight:600; text-decoration:none;
-                background:<?php echo $actif ? 'var(--accent)' : 'var(--card)'; ?>;
+                background:<?php echo $actif ? 'var(--accent-4)' : 'var(--card)'; ?>;
                 color:<?php echo $actif ? 'white' : 'var(--muted)'; ?>;
                 box-shadow:var(--shadow);">
         <?php echo $label; ?>
@@ -154,7 +154,7 @@ $nbNonLus = $bdd->query('SELECT COUNT(*) FROM contacts WHERE lu = 0')->fetchColu
               <?php echo $aRepondu ? '✏️ Modifier la réponse' : '✉️ Répondre'; ?>
             </label>
             <textarea name="reponse" rows="3" required placeholder="Tapez votre réponse..."
-                      style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.25); border-radius:8px; background:var(--bg); color:var(--muted); font-size:0.9rem; resize:vertical; font-family:inherit; box-sizing:border-box; margin-bottom:8px;"><?php echo htmlspecialchars($c['reponse'] ?? ''); ?></textarea>
+                      style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.25); border-radius:8px; color:var(--muted); font-size:0.9rem; resize:vertical; font-family:inherit; box-sizing:border-box; margin-bottom:8px;"><?php echo htmlspecialchars($c['reponse'] ?? ''); ?></textarea>
             <button type="submit" style="background:<?php echo $aRepondu ? '#2c7be5' : '#27ae60'; ?>; color:white; padding:8px 20px; border:none; border-radius:8px; font-weight:600; cursor:pointer; font-size:0.88rem;">
               <?php echo $aRepondu ? '✏️ Modifier' : '✉️ Envoyer la réponse'; ?>
             </button>

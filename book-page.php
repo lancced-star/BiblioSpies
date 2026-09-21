@@ -2,302 +2,369 @@
 require 'header.php';
 require 'connexion-bdd.php';
 
-if (!isset($_GET['isbn']) || empty($_GET['isbn'])) {
-  header('Location: index.php');
-  exit;
-}
+if (!isset($_GET['isbn']) || empty($_GET['isbn'])) { header('Location: index.php'); exit; }
 
-$isbn = $_GET['isbn'];
+$isbn    = $_GET['isbn'];
+$userId  = (int)($_SESSION['user_id'] ?? 0);
+$isAdmin = !empty($_SESSION['is_admin']);
 
-$sql = "SELECT
-  Livre.isbn,
-  Livre.titre,
-  Livre.resume,
-  Livre.image,
-  Livre.annee,
-  GROUP_CONCAT(CONCAT_WS(' ', Personne.prenom, Personne.nom) SEPARATOR ' • ') AS auteur,
-  Editeur.libelle AS editeur,
-  Langue.libelle AS langue,
-  Livre.nbpages
-FROM Livre
-LEFT JOIN Auteur ON Livre.isbn = Auteur.idLivre
-LEFT JOIN Personne ON Auteur.idPersonne = Personne.id
-LEFT JOIN Editeur ON Livre.editeur = Editeur.id
-LEFT JOIN Langue ON Livre.langue = Langue.id
-WHERE Livre.isbn = :isbn
-GROUP BY Livre.isbn
-LIMIT 1";
-
-$stmt = $bdd->prepare($sql);
-$stmt->execute([':isbn' => $isbn]);
-$book = $stmt->fetch(PDO::FETCH_ASSOC);
+// ── Données du livre ──────────────────────────────────────────────
+$stmtBook = $bdd->prepare("
+    SELECT l.isbn, l.titre, l.resume, l.image, l.annee,
+           GROUP_CONCAT(CONCAT_WS(' ', p.prenom, p.nom) SEPARATOR ' • ') AS auteur,
+           e.libelle AS editeur, lg.libelle AS langue, l.nbpages
+    FROM Livre l
+    LEFT JOIN Auteur   a  ON l.isbn = a.idLivre
+    LEFT JOIN Personne p  ON a.idPersonne = p.id
+    LEFT JOIN Editeur  e  ON l.editeur = e.id
+    LEFT JOIN Langue   lg ON l.langue  = lg.id
+    WHERE l.isbn = ? GROUP BY l.isbn LIMIT 1");
+$stmtBook->execute([$isbn]);
+$book = $stmtBook->fetch(PDO::FETCH_ASSOC);
 
 if (!$book) {
-  echo '<main style="padding:40px; text-align:center;"><h2>Livre non trouvé</h2><p><a href="index.php">Retour à l\'accueil</a></p></main>';
-  require 'footer.php';
-  exit;
+    echo '<main style="padding:60px;text-align:center;"><h2>Livre introuvable</h2><a href="index.php">← Retour</a></main>';
+    require 'footer.php'; exit;
 }
 
-// récupérer les avis pour ce livre (silencieux si la table n'existe pas encore)
+// ── Créer table avis ─────────────────────────────────────────────
 try {
-  $stmtReviews = $bdd->prepare('SELECT id, name, rating, review, created_at FROM review WHERE isbn = :isbn ORDER BY created_at DESC');
-  $stmtReviews->execute([':isbn' => $isbn]);
-  $reviews = $stmtReviews->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
-  $reviews = [];
+    $bdd->exec("CREATE TABLE IF NOT EXISTS `avis` (
+        `id`         INT AUTO_INCREMENT PRIMARY KEY,
+        `isbn`       VARCHAR(20) NOT NULL,
+        `user_id`    INT DEFAULT NULL,
+        `name`       VARCHAR(255) DEFAULT NULL,
+        `rating`     TINYINT DEFAULT NULL,
+        `contenu`    TEXT NOT NULL,
+        `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+} catch (Exception $e) {}
+
+// ── Lire les avis ────────────────────────────────────────────────
+try {
+    $stmtCount = $bdd->prepare("SELECT COUNT(*) FROM `avis` WHERE isbn = ?");
+    $stmtCount->execute([$isbn]);
+    $totalAvis = (int)$stmtCount->fetchColumn();
+
+    $stmtAvis = $bdd->prepare("SELECT * FROM `avis` WHERE isbn = ? ORDER BY created_at DESC LIMIT 3");
+    $stmtAvis->execute([$isbn]);
+    $avisList = $stmtAvis->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) { $avisList = []; $totalAvis = 0; }
+
+// ── L'utilisateur a-t-il déjà un avis ? ─────────────────────────
+$userHasAvis = false;
+if ($userId) {
+    foreach ($avisList as $a) {
+        if ((int)($a['user_id'] ?? 0) === $userId) { $userHasAvis = true; break; }
+    }
+    if (!$userHasAvis) {
+        try {
+            $chk = $bdd->prepare("SELECT 1 FROM `avis` WHERE isbn=? AND user_id=?");
+            $chk->execute([$isbn, $userId]);
+            if ($chk->fetch()) $userHasAvis = true;
+        } catch (Exception $e) {}
+    }
 }
 
-// render page
+// ── Favori ? ─────────────────────────────────────────────────────
+$isFavori = false;
+if ($userId) {
+    try {
+        $bdd->exec("CREATE TABLE IF NOT EXISTS `favoris` (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL, isbn VARCHAR(20) NOT NULL,
+            created_at DATETIME DEFAULT NOW(),
+            UNIQUE KEY uf (user_id, isbn)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $chkFav = $bdd->prepare("SELECT 1 FROM `favoris` WHERE user_id=? AND isbn=?");
+        $chkFav->execute([$userId, $isbn]);
+        $isFavori = (bool)$chkFav->fetch();
+    } catch (Exception $e) {}
+}
+
+$saved   = $_GET['saved']   ?? null;
+$deleted = $_GET['deleted'] ?? null;
+$edited  = $_GET['edited']  ?? null;
 ?>
-<main style="max-width:900px;margin:40px auto;padding:0 20px;">
-  <a href="index.php" style="display:inline-block;margin-bottom:20px;color:var(--accent);">← Retour</a>
-  <div class="book-page" style="display:flex;gap:30px;align-items:flex-start;">
-    <?php if (!empty($book['image'])): ?>
-      <div style="flex:0 0 320px;">
-        <img src="<?php echo htmlspecialchars($book['image']); ?>" alt="<?php echo htmlspecialchars($book['titre']); ?>" style="width:100%;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.08);">
-      </div>
-    <?php endif; ?>
-    <div style="flex:1;">
-      <h1 style="color:var(--accent);margin-top:0"><?php echo htmlspecialchars($book['titre']); ?></h1>
-      <p style="color:var(--muted);font-weight:600;"><?php echo htmlspecialchars($book['auteur'] ?? 'Auteur inconnu'); ?> <?php echo !empty($book['annee']) ? '— ' . htmlspecialchars($book['annee']) : ''; ?></p>
-      <?php if (!empty($book['editeur'])): ?><p style="margin-top:6px;color:var(--muted);">Éditeur: <?php echo htmlspecialchars($book['editeur']); ?></p><?php endif; ?>
-      <?php if (!empty($book['nbpages'])): ?><p style="margin-top:6px;color:var(--muted);"><?php echo htmlspecialchars($book['nbpages']); ?> pages</p><?php endif; ?>
-
-      <section style="margin-top:18px;color: var(--muted);line-height:1.7;">
-        <?php echo nl2br(htmlspecialchars($book['resume'] ?? '')); ?>
-      </section>
-
-      <?php $saved = isset($_GET['saved']) ? $_GET['saved'] : null; $deleted = isset($_GET['deleted']) ? $_GET['deleted'] : null; $edited = isset($_GET['edited']) ? $_GET['edited'] : null; ?>
-      <section style="margin-top:20px;">
-        <?php if ($saved === '1'): ?>
-          <div id="msg-saved" class="notification-fade" style="padding:12px;border-radius:8px;background:var(--card);color:var(--accent);border:1px solid var(--accent);max-width:720px;">Merci — votre avis a été enregistré.</div>
-        <?php else: ?>
-          <?php if ($saved === '0'): ?>
-            <div id="msg-saved-fail" class="notification-fade" style="padding:12px;border-radius:8px;background:var(--card);color:var(--accent-2);border:1px solid var(--accent-2);max-width:720px;margin-bottom:12px;">Erreur lors de l'enregistrement. Veuillez réessayer.</div>
-          <?php endif; ?>
-
-          <button id="toggleReviewBtn" style="background:var(--accent);color:var(--card);border:none;padding:10px 14px;border-radius:8px;cursor:pointer;">Déposer un avis</button>
-
-          <form id="reviewForm" class="review-form" action="save_review.php" method="post" style="display:none;margin-top:14px;max-width:720px;">
-            <input type="hidden" name="isbn" value="<?php echo htmlspecialchars($book['isbn']); ?>">
-            <div style="margin-bottom:8px;">
-              <label for="review_name" style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Votre nom (facultatif)</label>
-              <input id="review_name" name="name" type="text" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);">
-            </div>
-            <div style="margin-bottom:8px;">
-              <label for="review_rating" style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Note</label>
-              <select id="review_rating" name="rating" style="padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);">
-                <option value="5">5 — Excellent</option>
-                <option value="4">4 — Très bien</option>
-                <option value="3">3 — Bien</option>
-                <option value="2">2 — Moyen</option>
-                <option value="1">1 — Mauvais</option>
-              </select>
-            </div>
-            <div style="margin-bottom:8px;">
-              <label for="review_text" style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Votre avis</label>
-              <textarea id="review_text" name="review" rows="5" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);" required></textarea>
-            </div>
-            <div>
-              <button type="submit" style="background:var(--accent);color:var(--card);padding:10px 14px;border-radius:8px;border:none;cursor:pointer;">Envoyer l'avis</button>
-              <button type="button" id="cancelReviewBtn" style="margin-left:8px;background:var(--muted);color:var(--card);padding:10px 14px;border-radius:8px;border:none;cursor:pointer;">Annuler</button>
-            </div>
-          </form>
-
-          <script>
-            document.addEventListener('DOMContentLoaded', function(){
-              var btn = document.getElementById('toggleReviewBtn');
-              var form = document.getElementById('reviewForm');
-              var cancel = document.getElementById('cancelReviewBtn');
-              if (!btn || !form) return;
-              btn.addEventListener('click', function(){
-                if (form.style.display === 'none' || form.style.display === '') {
-                  form.style.display = 'block';
-                  var ta = document.getElementById('review_text'); if (ta) ta.focus();
-                } else {
-                  form.style.display = 'none';
-                }
-              });
-              if (cancel) cancel.addEventListener('click', function(){ form.style.display = 'none'; });
-            });
-          </script>
-        <?php endif; ?>
-      </section>
-
-      <section style="margin-top:20px;max-width:720px;">
-        <h2 style="margin:0 0 12px 0;color:var(--accent);">Avis</h2>
-        <?php if ($deleted === '1'): ?>
-          <div id="msg-deleted" class="notification-fade" style="padding:10px;border-radius:8px;background:var(--card);color:var(--accent-2);border:1px solid var(--accent-2);margin-bottom:12px;">Avis supprimé.</div>
-        <?php elseif ($deleted === '0'): ?>
-          <div id="msg-deleted-fail" class="notification-fade" style="padding:10px;border-radius:8px;background:var(--card);color:var(--accent-2);border:1px solid var(--accent-2);margin-bottom:12px;">Impossible de supprimer l'avis.</div>
-        <?php endif; ?>
-        <?php if ($edited === '1'): ?>
-          <div id="msg-edited" class="notification-fade" style="padding:10px;border-radius:8px;background:var(--card);color:var(--accent);border:1px solid var(--accent);margin-bottom:12px;">Avis modifié.</div>
-        <?php elseif ($edited === '0'): ?>
-          <div id="msg-edited-fail" class="notification-fade" style="padding:10px;border-radius:8px;background:var(--card);color:var(--accent-2);border:1px solid var(--accent-2);margin-bottom:12px;">Impossible de modifier l'avis.</div>
-        <?php endif; ?>
-
-        <?php if (empty($reviews)): ?>
-          <p style="color:var(--muted);">Aucun avis pour le moment.</p>
-        <?php else: ?>
-          <?php foreach ($reviews as $r): $rid = (int)$r['id']; ?>
-            <div class="review-item" style="border:1px solid var(--muted);padding:12px;border-radius:8px;margin-bottom:10px;position:relative;background:var(--card);">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                  <strong><?php echo htmlspecialchars($r['name'] ?: 'Anonyme'); ?></strong>
-                  <span style="color:var(--muted);margin-left:8px;font-size:0.95em;"><?php echo date('d/m/Y H:i', strtotime($r['created_at'])); ?></span>
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div style="color:#f6b01e;font-weight:700;"><?php echo str_repeat('★', max(1, min(5, (int)$r['rating']))); ?></div>
-                  <div class="review-menu" style="position:relative;">
-                    <button type="button" class="menu-toggle" data-id="<?php echo $rid; ?>" aria-expanded="false" style="background:transparent;border:none;font-size:18px;cursor:pointer;">⋯</button>
-                    <div class="menu-list" id="menu-<?php echo $rid; ?>" style="display:none;position:absolute;right:0;top:22px;background:var(--card);border:1px solid var(--muted);border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,0.08);">
-                      <button type="button" class="menu-edit" data-id="<?php echo $rid; ?>" style="display:block;padding:8px 12px;background:transparent;border:none;cursor:pointer;width:100%;text-align:left;">Modifier</button>
-                      <form method="post" action="delete_review.php" class="delete-form" style="margin:0;">
-                        <input type="hidden" name="id" value="<?php echo $rid; ?>">
-                        <input type="hidden" name="isbn" value="<?php echo htmlspecialchars($book['isbn']); ?>">
-                        <button type="button" class="menu-delete" data-id="<?php echo $rid; ?>" style="display:block;padding:8px 12px;background:transparent;border:none;cursor:pointer;width:100%;text-align:left;color:#c53030;">Supprimer</button>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="review-content" id="content-<?php echo $rid; ?>" style="margin-top:8px;"><?php echo nl2br(htmlspecialchars($r['review'])); ?></div>
-
-              <form class="edit-form review-form" id="edit-<?php echo $rid; ?>" action="edit_review.php" method="post" style="display:none;margin-top:10px;">
-                <input type="hidden" name="id" value="<?php echo $rid; ?>">
-                <input type="hidden" name="isbn" value="<?php echo htmlspecialchars($book['isbn']); ?>">
-                <div style="margin-bottom:8px;">
-                  <label style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Votre nom (facultatif)</label>
-                  <input name="name" type="text" value="<?php echo htmlspecialchars($r['name']); ?>" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);">
-                </div>
-                <div style="margin-bottom:8px;">
-                  <label style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Note</label>
-                  <select name="rating" style="padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);">
-                    <?php for ($i=5;$i>=1;$i--): ?>
-                      <option value="<?php echo $i; ?>" <?php echo ((int)$r['rating']=== $i)?'selected':''; ?>><?php echo $i; ?> — <?php echo ($i===5)?'Excellent':(($i===4)?'Très bien':(($i===3)?'Bien':(($i===2)?'Moyen':'Mauvais'))); ?></option>
-                    <?php endfor; ?>
-                  </select>
-                </div>
-                <div style="margin-bottom:8px;">
-                  <label style="display:block;margin-bottom:6px;color:var(--muted);font-weight:600;">Votre avis</label>
-                  <textarea name="review" rows="4" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--muted);background:var(--card);color:var(--muted);" required><?php echo htmlspecialchars($r['review']); ?></textarea>
-                </div>
-                <div>
-                  <button type="submit" style="background:var(--accent);color:var(--card);padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Enregistrer</button>
-                  <button type="button" class="edit-cancel" data-id="<?php echo $rid; ?>" style="margin-left:8px;background:var(--muted);color:var(--card);padding:8px 12px;border-radius:6px;border:none;cursor:pointer;">Annuler</button>
-                </div>
-              </form>
-            </div>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </section>
-    </div>
-  </div>
-</main>
-<?php require 'footer.php'; ?>
 
 <style>
-  .notification-fade {
-    transition: opacity 0.6s ease-out;
-  }
+.notif { padding:11px 16px;border-radius:8px;font-size:0.88rem;margin-bottom:14px; }
+.notif-ok  { background:#e8f5ef;border:1px solid #b2dfcc;color:#2e7d5e; }
+.notif-err { background:#fdecea;border:1px solid #f5c6c2;color:#c0392b; }
+.stars-select { display:flex;gap:4px;margin-bottom:12px; }
+.stars-select input { display:none; }
+.stars-select label { font-size:1.5rem;cursor:pointer;color:#ddd;transition:color .1s; }
+.stars-select input:checked ~ label,
+.stars-select label:hover,
+.stars-select label:hover ~ label { color:#ddd; }
+.stars-select label:hover,
+.stars-select input:checked + label,
+.stars-select label:has(~ input:checked) { color:#f6b01e; }
 </style>
 
-<!-- Confirmation modal personnalisé -->
-<div id="confirmModal" style="display:none;position:fixed;inset:0;z-index:1200;align-items:center;justify-content:center;background:rgba(11,10,8,0.45);">
-  <div style="background:#fff;width:100%;max-width:480px;border-radius:12px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,0.25);">
-    <h3 style="margin:0 0 8px 0;color:var(--accent);">Confirmer la suppression</h3>
-    <p style="margin:0 0 16px;color:#333;">Êtes-vous sûr de vouloir supprimer cet avis ? Cette action est irréversible.</p>
-    <div style="display:flex;gap:10px;justify-content:flex-end;">
-      <button id="confirmNo" type="button" style="background:#eee;color:#333;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;">Annuler</button>
-      <button id="confirmYes" type="button" style="background:#ff6b6b;color:#fff;padding:8px 12px;border-radius:8px;border:none;cursor:pointer;">Supprimer</button>
+<main style="max-width:940px;margin:36px auto;padding:0 20px 80px;">
+
+  <a href="index.php" style="display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:0.85rem;margin-bottom:22px;text-decoration:none;">← Retour aux livres</a>
+
+  <!-- ── Fiche livre ─────────────────────────────────────────── -->
+  <div style="display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap;background:var(--card);border-radius:14px;padding:30px;box-shadow:var(--shadow);margin-bottom:24px;">
+    <?php if (!empty($book['image'])): ?>
+    <div style="flex:0 0 190px;">
+      <img src="<?= htmlspecialchars($book['image']) ?>" alt="<?= htmlspecialchars($book['titre']) ?>"
+           style="width:100%;border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.12);">
+    </div>
+    <?php endif; ?>
+    <div style="flex:1;min-width:0;">
+      <h1 style="color:var(--accent);margin:0 0 8px;font-size:1.65rem;font-weight:800;"><?= htmlspecialchars($book['titre']) ?></h1>
+      <p style="color:var(--muted);font-weight:600;margin-bottom:5px;"><?= htmlspecialchars($book['auteur'] ?? 'Auteur inconnu') ?>
+        <?= !empty($book['annee']) ? ' — ' . htmlspecialchars($book['annee']) : '' ?>
+      </p>
+      <?php if (!empty($book['editeur'])): ?><p style="color:var(--muted);font-size:0.85rem;">Éditeur : <?= htmlspecialchars($book['editeur']) ?></p><?php endif; ?>
+      <?php if (!empty($book['nbpages'])): ?><p style="color:var(--muted);font-size:0.85rem;"><?= htmlspecialchars($book['nbpages']) ?> pages</p><?php endif; ?>
+      <?php if (!empty($book['langue'])): ?><p style="color:var(--muted);font-size:0.85rem;">Langue : <?= htmlspecialchars($book['langue']) ?></p><?php endif; ?>
+      <p style="color:var(--muted);line-height:1.8;margin-top:14px;font-size:0.93rem;"><?= nl2br(htmlspecialchars($book['resume'] ?? '')) ?></p>
+
+      <?php if ($userId): ?>
+      <button id="favBtn" onclick="toggleFavori('<?= htmlspecialchars($book['isbn']) ?>')"
+              style="margin-top:20px;display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:0.87rem;font-weight:600;cursor:pointer;transition:all .2s;
+                     background:<?= $isFavori?'#c0392b':'transparent' ?>;
+                     color:<?= $isFavori?'white':'var(--muted)' ?>;
+                     border:1.5px solid <?= $isFavori?'#c0392b':'rgba(132,106,83,0.28)' ?>;">
+        <?= $isFavori ? '❤️ Retirer des favoris' : '🤍 Ajouter aux favoris' ?>
+      </button>
+      <?php else: ?>
+      <div style="margin-top:20px;">
+        <a href="login.php" style="display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;border:1.5px solid rgba(132,106,83,0.2);color:var(--muted);font-size:0.87rem;text-decoration:none;">🤍 Connectez-vous pour ajouter aux favoris</a>
+      </div>
+      <?php endif; ?>
     </div>
   </div>
-</div>
+
+  <!-- ── Section Avis ───────────────────────────────────────── -->
+  <div style="background:var(--card);border-radius:14px;padding:26px 30px;box-shadow:var(--shadow);">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+      <h2 style="color:var(--accent);font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:10px;">
+        💬 Avis des agents
+        <?php if ($totalAvis > 0): ?>
+        <span style="background:rgba(132,106,83,0.1);color:var(--muted);font-size:0.73rem;font-weight:600;padding:2px 9px;border-radius:20px;"><?= $totalAvis ?></span>
+        <?php endif; ?>
+      </h2>
+      <?php if ($totalAvis > 3): ?>
+      <a href="all_reviews.php?isbn=<?= urlencode($isbn) ?>"
+         style="color:#a8834a;font-size:0.85rem;font-weight:600;text-decoration:none;">
+        Voir tous les avis (<?= $totalAvis ?>) →
+      </a>
+      <?php endif; ?>
+    </div>
+
+    <!-- Notifications -->
+    <?php if ($saved==='1'):   ?><div class="notif notif-ok"  id="n1">✅ Votre avis a été enregistré.</div><?php endif; ?>
+    <?php if ($saved==='0'):   ?><div class="notif notif-err" id="n2">❌ Erreur lors de l'enregistrement. Réessayez.</div><?php endif; ?>
+    <?php if ($deleted==='1'): ?><div class="notif notif-ok"  id="n3">🗑️ Avis supprimé.</div><?php endif; ?>
+    <?php if ($edited==='1'):  ?><div class="notif notif-ok"  id="n4">✅ Avis modifié.</div><?php endif; ?>
+
+    <!-- Formulaire dépôt d'avis -->
+    <?php if ($userId && !$userHasAvis): ?>
+    <div style="margin-bottom:22px;">
+      <button id="toggleAvisBtn"
+              style="background:var(--accent-4);color:white;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:0.87rem;font-weight:700;">
+        ✍️ Déposer un avis
+      </button>
+      <form id="avisForm" action="save_review.php" method="POST"
+            style="display:none;margin-top:14px;padding:18px;background:rgba(132,106,83,0.04);border-radius:10px;border:1px solid rgba(132,106,83,0.11);">
+        <input type="hidden" name="isbn" value="<?= htmlspecialchars($isbn) ?>">
+
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:7px;">Note</label>
+          <div class="stars-select" id="starsInput">
+            <?php for ($i = 1; $i <= 5; $i++): ?>
+            <input type="radio" name="rating" id="star<?= $i ?>" value="<?= $i ?>" <?= $i===3?'checked':'' ?>>
+            <label for="star<?= $i ?>">★</label>
+            <?php endfor; ?>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;">Votre avis</label>
+          <textarea name="review" id="avisTextarea" rows="4" required maxlength="2000"
+                    style="width:100%;padding:9px 12px;border:1.5px solid rgba(132,106,83,0.18);border-radius:8px;background:var(--accent-5);color:var(--accent);font-size:0.9rem;resize:none;outline:none;font-family:inherit;"
+                    placeholder="Partagez votre ressenti sur ce livre..."></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button type="submit" style="padding:9px 20px;background:var(--accent-4);color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.87rem;font-weight:700;">Publier</button>
+          <button type="button" id="cancelAvisBtn" style="padding:9px 14px;background:rgba(132,106,83,0.07);border:none;border-radius:8px;cursor:pointer;color:var(--muted);font-size:0.87rem;">Annuler</button>
+        </div>
+      </form>
+    </div>
+
+    <?php elseif (!$userId): ?>
+    <p style="color:var(--muted);font-size:0.88rem;margin-bottom:20px;">
+      <a href="login.php" style="color:#a8834a;font-weight:600;">Connectez-vous</a> pour déposer un avis.
+    </p>
+    <?php else: ?>
+    <div style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(46,125,94,0.07);border-radius:8px;color:#2e7d5e;font-size:0.85rem;font-weight:600;margin-bottom:18px;">
+      ✅ Vous avez déjà déposé un avis pour ce livre.
+    </div>
+    <?php endif; ?>
+
+    <!-- Liste des avis (3 max) -->
+    <?php if (empty($avisList)): ?>
+      <p style="color:var(--muted);font-size:0.9rem;padding:16px 0;">Aucun avis pour le moment. Soyez le premier !</p>
+    <?php else: ?>
+    <div style="display:flex;flex-direction:column;gap:13px;">
+      <?php foreach ($avisList as $a):
+        $aid     = (int)$a['id'];
+        $rating  = max(1, min(5, (int)($a['rating'] ?? 3)));
+        $isOwner = $userId && (int)($a['user_id'] ?? 0) === $userId;
+        $canEdit = $isOwner || $isAdmin;
+        $contenu = $a['contenu'] ?? '';
+      ?>
+      <div style="border:1px solid rgba(132,106,83,0.1);border-radius:10px;padding:15px 17px;background:rgba(132,106,83,0.02);">
+        <!-- En-tête avis -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <strong style="color:var(--accent);font-size:0.92rem;"><?= htmlspecialchars($a['name'] ?? 'Agent anonyme') ?></strong>
+            <?php if ($isOwner): ?>
+            <span style="background:rgba(201,169,110,.15);color:#a8834a;font-size:0.68rem;font-weight:700;padding:2px 8px;border-radius:20px;">Mon avis</span>
+            <?php endif; ?>
+            <span style="color:#f6b01e;font-size:0.9rem;"><?= str_repeat('★', $rating) ?><span style="color:#ddd;"><?= str_repeat('★', 5 - $rating) ?></span></span>
+            <span style="color:var(--muted);font-size:0.76rem;"><?= date('d/m/Y', strtotime($a['created_at'])) ?></span>
+          </div>
+          <?php if ($canEdit): ?>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button onclick="toggleEditAvis(<?= $aid ?>)"
+                    style="background:none;border:1px solid rgba(132,106,83,0.18);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.75rem;color:var(--muted);">✏️ Modifier</button>
+            <form method="POST" action="delete_review.php" style="margin:0;" onsubmit="return confirm('Supprimer cet avis ?')">
+              <input type="hidden" name="id"   value="<?= $aid ?>">
+              <input type="hidden" name="isbn" value="<?= htmlspecialchars($isbn) ?>">
+              <button type="submit" style="background:none;border:1px solid rgba(192,57,43,.2);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.75rem;color:#c0392b;">🗑️</button>
+            </form>
+          </div>
+          <?php endif; ?>
+        </div>
+
+        <!-- Contenu -->
+        <div id="content-<?= $aid ?>" style="color:var(--muted);font-size:0.9rem;line-height:1.7;">
+          <?= nl2br(htmlspecialchars($contenu)) ?>
+        </div>
+
+        <!-- Formulaire édition inline -->
+        <form id="edit-<?= $aid ?>" method="POST" action="edit_review.php" style="display:none;margin-top:12px;">
+          <input type="hidden" name="id"   value="<?= $aid ?>">
+          <input type="hidden" name="isbn" value="<?= htmlspecialchars($isbn) ?>">
+          <select name="rating" style="padding:7px 11px;border:1.5px solid rgba(132,106,83,0.18);border-radius:8px;background:var(--bg);color:var(--accent);font-size:0.85rem;margin-bottom:9px;display:block;">
+            <?php for ($i = 5; $i >= 1; $i--): ?>
+            <option value="<?= $i ?>" <?= $rating===$i?'selected':'' ?>><?= $i ?> — <?= ['','Mauvais','Moyen','Bien','Très bien','Excellent'][$i] ?></option>
+            <?php endfor; ?>
+          </select>
+          <textarea name="review" rows="3" required
+                    style="width:100%;padding:8px 11px;border:1.5px solid rgba(132,106,83,0.18);border-radius:8px;background:var(--bg);color:var(--accent);font-size:0.88rem;resize:none;margin-bottom:9px;"><?= htmlspecialchars($contenu) ?></textarea>
+          <div style="display:flex;gap:7px;">
+            <button type="submit" style="padding:7px 16px;background:var(--accent);color:white;border:none;border-radius:7px;cursor:pointer;font-size:0.82rem;font-weight:700;">💾 Sauvegarder</button>
+            <button type="button" onclick="toggleEditAvis(<?= $aid ?>)" style="padding:7px 12px;background:rgba(132,106,83,0.07);border:none;border-radius:7px;cursor:pointer;font-size:0.82rem;color:var(--muted);">Annuler</button>
+          </div>
+        </form>
+      </div>
+      <?php endforeach; ?>
+    </div>
+
+    <?php if ($totalAvis > 3): ?>
+    <div style="text-align:center;margin-top:16px;">
+      <a href="all_reviews.php?isbn=<?= urlencode($isbn) ?>"
+         style="display:inline-flex;align-items:center;gap:7px;padding:10px 24px;border-radius:8px;border:1.5px solid rgba(132,106,83,0.2);color:var(--muted);font-size:0.87rem;text-decoration:none;font-weight:600;transition:all .2s;"
+         onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+         onmouseout="this.style.borderColor='rgba(132,106,83,0.2)';this.style.color='var(--muted)'">
+        📖 Voir tous les <?= $totalAvis ?> avis
+      </a>
+    </div>
+    <?php endif; ?>
+    <?php endif; ?>
+
+  </div><!-- /avis -->
+</main>
 
 <script>
-// gestion des menus, édition inline et modal de confirmation
-document.addEventListener('DOMContentLoaded', function(){
-  document.querySelectorAll('.menu-toggle').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var id = btn.getAttribute('data-id');
-      var menu = document.getElementById('menu-' + id);
-      if (!menu) return;
-      var open = menu.style.display === 'block';
-      // fermer tous
-      document.querySelectorAll('.menu-list').forEach(function(m){ m.style.display = 'none'; });
-      if (!open) menu.style.display = 'block';
+// ── Toggle formulaire avis ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    const btn    = document.getElementById('toggleAvisBtn');
+    const form   = document.getElementById('avisForm');
+    const cancel = document.getElementById('cancelAvisBtn');
+    if (btn && form) {
+        btn.addEventListener('click', () => {
+            const open = form.style.display === 'block';
+            form.style.display = open ? 'none' : 'block';
+            if (!open) document.getElementById('avisTextarea')?.focus();
+        });
+    }
+    if (cancel && form) cancel.addEventListener('click', () => form.style.display = 'none');
+
+    // Auto-hide notifications
+    ['n1','n2','n3','n4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) setTimeout(() => { el.style.transition = 'opacity .5s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 500); }, 5000);
     });
-  });
+});
 
-  // clic sur Modifier: afficher le formulaire d'édition
-  document.querySelectorAll('.menu-edit').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var id = btn.getAttribute('data-id');
-      var content = document.getElementById('content-' + id);
-      var form = document.getElementById('edit-' + id);
-      if (!form || !content) return;
-      content.style.display = 'none';
-      form.style.display = 'block';
-      // fermer menu
-      var menu = document.getElementById('menu-' + id); if (menu) menu.style.display = 'none';
+// ── Toggle édition inline ────────────────────────────────────
+function toggleEditAvis(id) {
+    const c = document.getElementById('content-' + id);
+    const f = document.getElementById('edit-'    + id);
+    if (!c || !f) return;
+    const showing = f.style.display === 'block';
+    f.style.display = showing ? 'none'  : 'block';
+    c.style.display = showing ? 'block' : 'none';
+}
+
+// ── Favori toggle ─────────────────────────────────────────────
+function toggleFavori(isbn) {
+    const btn = document.getElementById('favBtn');
+    if (!btn) return;
+    const fd = new FormData();
+    fd.append('isbn', isbn);
+    fetch('toggle_favoris.php', { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'} })
+        .then(r => r.json())
+        .then(data => {
+            if (data.auth === false) { window.location.href = 'login.php'; return; }
+            if (data.status === 'added') {
+                btn.innerHTML = '❤️ Retirer des favoris';
+                btn.style.cssText += ';background:#c0392b;color:white;border-color:#c0392b';
+            } else {
+                btn.innerHTML = '🤍 Ajouter aux favoris';
+                btn.style.cssText += ';background:transparent;color:var(--muted);border-color:rgba(132,106,83,0.28)';
+            }
+        }).catch(() => {});
+}
+
+document.querySelectorAll('.stars-select').forEach(wrapper => {
+  const inputs = wrapper.querySelectorAll('input[type="radio"]');
+  const labels = wrapper.querySelectorAll('label');
+
+  function updateStars(value) {
+    labels.forEach((lbl, i) => {
+      lbl.style.color = (i < value) ? '#f6b01e' : '#ddd';
     });
+  }
+
+  // Affichage initial
+  inputs.forEach(input => {
+    if (input.checked) updateStars(parseInt(input.value));
   });
 
-  // Annuler édition
-  document.querySelectorAll('.edit-cancel').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var id = btn.getAttribute('data-id');
-      var content = document.getElementById('content-' + id);
-      var form = document.getElementById('edit-' + id);
-      if (!form || !content) return;
-      form.style.display = 'none';
-      content.style.display = 'block';
+  // Au clic
+  inputs.forEach(input => {
+    input.addEventListener('change', () => updateStars(parseInt(input.value)));
+  });
+
+  // Au survol
+  labels.forEach((lbl, i) => {
+    lbl.addEventListener('mouseenter', () => updateStars(i + 1));
+    lbl.addEventListener('mouseleave', () => {
+      const checked = wrapper.querySelector('input:checked');
+      updateStars(checked ? parseInt(checked.value) : 0);
     });
-  });
-
-  // fermer menus en cliquant ailleurs
-  document.addEventListener('click', function(e){
-    if (!e.target.closest || e.target.closest('.review-menu')) return;
-    document.querySelectorAll('.menu-list').forEach(function(m){ m.style.display = 'none'; });
-  });
-
-  // Modal de confirmation pour suppression
-  var confirmModal = document.getElementById('confirmModal');
-  var confirmYes = document.getElementById('confirmYes');
-  var confirmNo = document.getElementById('confirmNo');
-  var pendingForm = null;
-
-  // ouvrir le modal quand on clique sur un bouton supprimer
-  document.querySelectorAll('.menu-delete').forEach(function(btn){
-    btn.addEventListener('click', function(e){
-      e.preventDefault();
-      // trouver le formulaire parent
-      var form = btn.closest('form');
-      if (!form) return;
-      pendingForm = form;
-      if (confirmModal) confirmModal.style.display = 'flex';
-      // fermer tous les menus ouverts
-      document.querySelectorAll('.menu-list').forEach(function(m){ m.style.display = 'none'; });
-    });
-  });
-
-  if (confirmNo) confirmNo.addEventListener('click', function(){ if (confirmModal) confirmModal.style.display = 'none'; pendingForm = null; });
-  if (confirmYes) confirmYes.addEventListener('click', function(){
-    if (pendingForm) pendingForm.submit();
-  });
-
-  // fermer modal en cliquant en dehors
-  if (confirmModal) confirmModal.addEventListener('click', function(e){ if (e.target === confirmModal) { confirmModal.style.display = 'none'; pendingForm = null; } });
-
-  // auto-hide notifications after 5s with fade-out effect
-  ['msg-saved','msg-saved-fail','msg-deleted','msg-deleted-fail','msg-edited','msg-edited-fail'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) setTimeout(function(){
-      el.style.opacity = '0';
-      setTimeout(function(){ el.style.display = 'none'; }, 600);
-    }, 5000);
   });
 });
 </script>
+
+<?php require 'footer.php'; ?>

@@ -43,7 +43,38 @@ try {
 
 // ── Derniers inscrits ────────────────────────────────────────
 $derniersUsers = $bdd->query('SELECT id, prenom, nom, username, created_at FROM users ORDER BY created_at DESC LIMIT 5')->fetchAll(PDO::FETCH_ASSOC);
+
+// ── Signalements ─────────────────────────────────────────────
+try {
+    $signalements = $bdd->query('
+        SELECT s.*, u.username as pseudo
+        FROM signalements s
+        LEFT JOIN users u ON s.user_id = u.id
+        WHERE s.statut = "en_attente"
+        ORDER BY s.created_at DESC
+    ')->fetchAll(PDO::FETCH_ASSOC);
+} catch(Exception $e) {
+    $signalements = [];
+}
 ?>
+
+<table>
+  <tbody>
+    <?php foreach ($signalements as $s): ?>
+    <tr>
+      <td><?php echo $s['created_at']; ?></td>
+      <td><?php echo htmlspecialchars($s['pseudo'] ?? 'Anonyme'); ?></td>
+      <td style="color:red;"><?php echo htmlspecialchars($s['mots_detectes']); ?></td>
+      <td><?php echo htmlspecialchars($s['localisation']); ?></td>
+      <td><?php echo htmlspecialchars(substr($s['contenu_original'], 0, 100)); ?>...</td>
+      <td>
+        <a href="traiter-signalement.php?id=<?php echo $s['id']; ?>&action=traite">✅ Traité</a>
+        <a href="traiter-signalement.php?id=<?php echo $s['id']; ?>&action=ignore">❌ Ignorer</a>
+      </td>
+    </tr>
+    <?php endforeach; ?>
+  </tbody>
+</table>
 
 <main class="container" style="padding:40px 20px;">
 
@@ -217,6 +248,9 @@ $derniersUsers = $bdd->query('SELECT id, prenom, nom, username, created_at FROM 
           </a>
           <a href="admin_livre_form.php" style="display:flex; align-items:center; gap:12px; padding:12px 16px; background:rgba(132,106,83,0.06); border:1px solid rgba(132,106,83,0.15); border-radius:8px; text-decoration:none; color:var(--accent); font-size:0.9rem; font-weight:600;">
             ➕ Ajouter un livre <span style="margin-left:auto; color:var(--muted);">→</span>
+          </a>
+          <a href="analytics.php" style="display:flex; align-items:center; gap:12px; padding:12px 16px; background:rgba(201,169,110,0.08); border:1px solid rgba(201,169,110,0.2); border-radius:8px; text-decoration:none; color:var(--accent); font-size:0.9rem; font-weight:600;">
+            📡 Analytics <span style="margin-left:auto; color:var(--accent);">→</span>
           </a>
         </div>
       </div>

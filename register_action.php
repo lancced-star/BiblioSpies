@@ -14,6 +14,13 @@ $erreurs = [];
 if (empty($prenom))   $erreurs[] = 'Le prénom est obligatoire.';
 if (empty($nom))      $erreurs[] = 'Le nom est obligatoire.';
 if (empty($username)) $erreurs[] = 'Le pseudo est obligatoire.';
+
+// Validation prénom et nom (lettres, espaces, tirets, max 50 caractères)
+if (!preg_match('/^[a-zA-ZÀ-ÿ\s\-]{1,50}$/u', $prenom))
+    $erreurs[] = 'Le prénom ne peut contenir que des lettres, espaces et tirets (max 50 caractères).';
+if (!preg_match('/^[a-zA-ZÀ-ÿ\s\-]{1,50}$/u', $nom))
+    $erreurs[] = 'Le nom ne peut contenir que des lettres, espaces et tirets (max 50 caractères).';
+
 if (!preg_match('/^[a-zA-Z0-9_\-]{3,50}$/', $username))
     $erreurs[] = 'Le pseudo ne peut contenir que des lettres, chiffres, _ et - (3 à 50 caractères).';
 

@@ -52,7 +52,7 @@ unset($_SESSION['flash']);
              value="<?php echo htmlspecialchars($livre['isbn'] ?? ''); ?>"
              <?php echo $isEdit ? 'readonly style="background:#f5f5f5; cursor:not-allowed;"' : ''; ?>
              placeholder="Ex : 9782867465444"
-             style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--bg); color:var(--muted);">
+             style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; color:var(--muted);">
       <?php if ($isEdit): ?>
         <input type="hidden" name="isbn_original" value="<?php echo htmlspecialchars($livre['isbn']); ?>">
       <?php endif; ?>
@@ -64,7 +64,7 @@ unset($_SESSION['flash']);
       <input type="text" name="titre" required maxlength="500"
              value="<?php echo htmlspecialchars($livre['titre'] ?? ''); ?>"
              placeholder="Titre du livre"
-             style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--bg); color:var(--muted);">
+             style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; color:var(--muted);">
     </div>
 
     <!-- Ligne : Éditeur + Année -->
@@ -72,7 +72,7 @@ unset($_SESSION['flash']);
       <div>
         <label style="font-weight:600; color:var(--accent); display:block; margin-bottom:6px;">Éditeur *</label>
         <select name="editeur" required
-                style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--bg); color:var(--muted);">
+                style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--accent-5); color:var(--muted);">
           <option value="">— Choisir —</option>
           <?php foreach ($editeurs as $e): ?>
             <option value="<?php echo $e['id']; ?>" <?php echo (isset($livre['editeur']) && $livre['editeur'] == $e['id']) ? 'selected' : ''; ?>>
@@ -86,7 +86,7 @@ unset($_SESSION['flash']);
         <input type="number" name="annee" min="1800" max="2099"
                value="<?php echo htmlspecialchars($livre['annee'] ?? ''); ?>"
                placeholder="Ex : 2023"
-               style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--bg); color:var(--muted);">
+               style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--accent-5);color:var(--muted);">
       </div>
     </div>
 
@@ -94,7 +94,7 @@ unset($_SESSION['flash']);
     <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
       <div>
         <label style="font-weight:600; color:var(--accent); display:block; margin-bottom:6px;">Genre</label>
-        <select name="genre" style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--bg); color:var(--muted);">
+        <select name="genre" style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--accent-5); color:var(--muted);">
           <option value="">— Choisir —</option>
           <?php foreach ($genres as $g): ?>
             <option value="<?php echo $g['id']; ?>" <?php echo (isset($livre['genre']) && $livre['genre'] == $g['id']) ? 'selected' : ''; ?>>
@@ -105,7 +105,7 @@ unset($_SESSION['flash']);
       </div>
       <div>
         <label style="font-weight:600; color:var(--accent); display:block; margin-bottom:6px;">Langue</label>
-        <select name="langue" style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--bg); color:var(--muted);">
+        <select name="langue" style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--accent-5); color:var(--muted);">
           <option value="">— Choisir —</option>
           <?php foreach ($langues as $l): ?>
             <option value="<?php echo $l['id']; ?>" <?php echo (isset($livre['langue']) && $livre['langue'] == $l['id']) ? 'selected' : ''; ?>>
@@ -119,7 +119,7 @@ unset($_SESSION['flash']);
         <input type="number" name="nbpages" min="1"
                value="<?php echo htmlspecialchars($livre['nbpages'] ?? ''); ?>"
                placeholder="Ex : 320"
-               style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--bg); color:var(--muted);">
+               style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; background:var(--accent-5);color:var(--muted);">
       </div>
     </div>
 
@@ -128,7 +128,7 @@ unset($_SESSION['flash']);
       <label style="font-weight:600; color:var(--accent); display:block; margin-bottom:6px;">Résumé</label>
       <textarea name="resume" rows="5"
                 placeholder="Résumé du livre..."
-                style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; resize:vertical; background:var(--bg); color:var(--muted);"><?php echo htmlspecialchars($livre['resume'] ?? ''); ?></textarea>
+                style="width:100%; padding:10px 14px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; font-size:0.95rem; resize:vertical; color:var(--muted);"><?php echo htmlspecialchars($livre['resume'] ?? ''); ?></textarea>
     </div>
 
     <!-- Upload couverture -->
@@ -142,7 +142,7 @@ unset($_SESSION['flash']);
         </div>
       <?php endif; ?>
       <input type="file" name="image" accept="image/jpeg,image/png,image/webp"
-             style="width:100%; padding:8px; border:1px dashed rgba(132,106,83,0.4); border-radius:8px; background:var(--bg); color:var(--muted);">
+             style="width:100%; padding:8px; border:1px dashed rgba(132,106,83,0.4); border-radius:8px; background:var(--accent-5); color:var(--muted);">
       <p style="font-size:0.78rem; color:var(--muted); margin-top:4px;">JPG, PNG ou WEBP — max 2 Mo. Le fichier sera nommé automatiquement d'après l'ISBN.</p>
     </div>
 

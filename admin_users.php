@@ -68,7 +68,7 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <form method="get" action="admin_users.php" style="margin-bottom:24px; display:flex; gap:10px;">
     <input type="text" name="q" value="<?php echo htmlspecialchars($search); ?>"
            placeholder="Rechercher par pseudo, prénom ou nom..."
-           style="flex:1; padding:10px 16px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; background:var(--bg); color:var(--muted); font-size:0.9rem;">
+           style="flex:1; padding:10px 16px; border:1px solid rgba(132,106,83,0.3); border-radius:8px; color:var(--muted); font-size:0.9rem;">
     <button type="submit" style="background:var(--accent); color:white; padding:10px 20px; border:none; border-radius:8px; cursor:pointer; font-weight:600;">🔍</button>
     <?php if ($search): ?><a href="admin_users.php" style="padding:10px 16px; border-radius:8px; border:1px solid rgba(132,106,83,0.3); color:var(--muted); text-decoration:none; font-size:0.9rem;">✕</a><?php endif; ?>
   </form>
@@ -77,7 +77,7 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
   <div style="overflow-x:auto;">
     <table style="width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);">
       <thead>
-        <tr style="background:var(--accent); color:white; text-align:left;">
+        <tr style="background:var(--accent-4); color:white; text-align:left;">
           <th style="padding:14px 16px;">Agent</th>
           <th style="padding:14px 16px;">Pseudo</th>
           <th style="padding:14px 16px;">Code carte</th>
@@ -101,7 +101,11 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             @<?php echo htmlspecialchars($u['username']); ?>
           </td>
           <td style="padding:12px 16px; font-family:'Courier New',monospace; font-size:0.78rem; color:var(--muted);">
-            <?php echo htmlspecialchars($u['carte_code']); ?>
+            <?php if ($isAdmin): ?>
+              <span style="color:#2c7be5; font-style:italic;">••••••••••••</span>
+            <?php else: ?>
+              <?php echo htmlspecialchars($u['carte_code']); ?>
+            <?php endif; ?>
           </td>
           <td style="padding:12px 16px; font-size:0.82rem; color:var(--muted);">
             <?php echo date('d/m/Y', strtotime($u['created_at'])); ?>
@@ -137,6 +141,8 @@ $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
               <a href="admin_users.php?action=supprimer&id=<?php echo $u['id']; ?>"
                  onclick="return confirm('Supprimer définitivement @<?php echo addslashes($u['username']); ?> ?')"
                  style="background:#c0392b; color:white; padding:5px 10px; border-radius:6px; font-size:0.78rem; text-decoration:none; margin:2px;">🗑️</a>
+              <a href="admin_user_favoris.php?id=<?php echo $u['id']; ?>"
+                 style="background:#e67e22; color:white; padding:5px 10px; border-radius:6px; font-size:0.78rem; text-decoration:none; margin:2px;" title="Voir les favoris">❤️</a>
             <?php else: ?>
               <span style="color:var(--muted); font-size:0.78rem;">—</span>
             <?php endif; ?>

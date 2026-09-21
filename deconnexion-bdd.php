@@ -1,5 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+require 'session_init.php';
 
 // 1. Vider toutes les variables de session
 $_SESSION = [];

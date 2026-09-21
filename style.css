@@ -2,13 +2,16 @@
    VARIABLES ET THÈMES
    ========================================================================== */
 :root {
-  --bg: #fff8f2;
+  --bg: #c395cb;
   --card: #ffffff;
-  --muted: #846a53;
-  --accent: #3a1f05;
-  --accent-2: #b92121;
-  --glass: rgba(255, 255, 255, 0.6);
-  --shadow: 0 10px 30px rgba(58, 31, 5, 0.1);
+  --muted: #6b4f7a;
+  --accent: #3c194a;
+  --accent-2: #eb5050;
+  --accent-3: #3c194a;
+  --accent-4: #3c194a;
+  --accent-5: white;
+  --glass: rgba(26, 6, 34, 0.6);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   --radius: 12px;
   --max-width: 1200px;
   --transition: 240ms cubic-bezier(0.2, 0.8, 0.2, 0.1);
@@ -21,6 +24,9 @@
   --muted: #e0e0e0;
   --accent: #f0f0f0;
   --accent-2: #ff6b6b;
+  --accent-3: #1a1a1a;
+  --accent-4: #000000;
+  --accent-5: black;
   --glass: rgba(42, 42, 42, 0.6);
   --shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
@@ -28,51 +34,209 @@
 /* ==========================================================================
    RESET & BASE
    ========================================================================== */
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); font-family: var(--font-sans); color: var(--muted); transition: background-color 0.5s ease; }
-a { text-decoration: none; transition: var(--transition); }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  font-family: var(--font-sans);
+  color: #3c194a;
+  transition: background-color 0.5s ease;
+}
+
+a {
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+/* Fond blanc pour les champs du profil */
+.p-input,
+.p-textarea,
+input[type="text"],
+input[type="email"],
+textarea {
+  background: var(--accent-5);
+  color: var(--accent);
+}
 
 /* ==========================================================================
    BOUTON THÈME (HAUT DROITE DISCRET)
    ========================================================================== */
 .theme-toggle-btn {
-  position: absolute; top: 15px; right: 15px;
-  background: var(--accent); color: white; border: none;
-  border-radius: 50%; width: 32px; height: 32px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  z-index: 1100; box-shadow: var(--shadow);
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  box-shadow: var(--shadow);
 }
 
 /* ==========================================================================
    NAVIGATION & HEADER
    ========================================================================== */
-.navbar {
-  display: flex; align-items: center; flex-direction: column;
-  padding: 1.2rem 2rem; background: var(--glass);
-  backdrop-filter: blur(8px); position: relative;
+.site-bar,
+.navbar,
+.footer {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 1.2rem 2rem;
+  background: var(--glass);
+  position: relative;
+  box-shadow: var(--shadow);
+  overflow: visible !important;
+  isolation: auto !important;
 }
 
-.nav-image { height: 110px; width: auto; margin-bottom: 10px; }
+.site-bar::before,
+.navbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(8px);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.nav-image {
+  height: 110px;
+  width: auto;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
 
 .nav-bottom {
-  display: flex; align-items: center; width: 100%; justify-content: space-between;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
   max-width: var(--max-width);
 }
 
-.nav-links { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; }
-.nav-links a { color: var(--muted); font-weight: 600; font-size: 1.05rem; }
-.nav-links a:hover { color: var(--accent); }
+.nav-links {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  text-align: center;
+}
+
+.nav-links a {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1.05rem;
+  --transition: 240ms cubic-bezier(0.2, 0.8, 0.2, 0.1);
+}
+
+.nav-links a:hover {
+  color: var(--accent-4);
+}
+
+/* ==========================================================================
+   BOUTONS LANGUES (HAUT GAUCHE)
+   ========================================================================== */
+
+/* Cache le bandeau Google Translate */
+.goog-te-banner-frame {
+  display: none !important;
+}
+
+.skiptranslate {
+  display: none !important;
+}
+
+/* Empêche le décalage de la page vers le bas */
+body {
+  top: 0 !important;
+  position: static !important;
+}
+
+#lang-switcher {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 9999;
+  display: flex;
+  gap: 8px;
+}
+
+#lang-switcher button {
+  background-color: transparent;
+  color: white;
+  border: 1px solid white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+#lang-switcher button:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+#lang-switcher button.actif {
+  background-color: white;
+  color: black;
+}
+
+/* ==========================================================================
+   BOUTON DROITS (HAUT GAUCHE)
+   ========================================================================== */
+.btn-droits {
+  position: fixed;
+  top: 58px;
+  left: 20px;
+  z-index: 9999;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 1rem;
+  color: white !important;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+  border: 2px solid white;
+}
+
+.btn-droits:hover {
+  opacity: 0.85;
+}
 
 /* ==========================================================================
    MENU PROFIL (MODIFIÉ : SUPPRESSION DU RECTANGLE)
    ========================================================================== */
-.profile-container { position: relative; }
+.profile-container {
+  position: relative;
+  z-index: 99999;
+}
+
+.profile-main {
+  max-width: var(--max-width, 1200px);
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+  position: relative;
+  z-index: 1;
+}
 
 /* Supprime l'icône hamburger/rectangle parasite */
-.nav-toggle, 
-.profile-container::before, 
-.profile-container::after { 
-  display: none !important; 
+.nav-toggle,
+.profile-container::before,
+.profile-container::after {
+  display: none !important;
 }
 
 .profile-header {
@@ -90,7 +254,9 @@ a { text-decoration: none; transition: var(--transition); }
   font-size: 0.9rem;
 }
 
-.btn-logout:hover { background: #a93226; }
+.btn-logout:hover {
+  background: #a93226;
+}
 
 .btn-edit {
   display: inline-block;
@@ -102,56 +268,92 @@ a { text-decoration: none; transition: var(--transition); }
   text-decoration: none;
 }
 
-.profile-btn { 
-  background: transparent; 
-  border: none; 
-  cursor: pointer; 
-  display: flex; 
-  align-items: center; 
+.profile-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
   padding: 0;
 }
 
-.profile-btn img { 
-  width: 42px; height: 42px; border-radius: 50%; 
-  object-fit: cover; border: 2px solid rgba(132, 106, 83, 0.2);
+.profile-btn img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(132, 106, 83, 0.2);
 }
 
-.profile-menu { 
-  position: absolute; right: 0; top: calc(100% + 10px); 
-  background: var(--card); border-radius: 8px; 
-  box-shadow: var(--shadow); min-width: 160px; 
-  display: none; padding: 8px 0; z-index: 2000; 
+.profile-menu {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  /* recalculé par JS au clic */
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+  min-width: 190px;
+  display: none;
+  padding: 8px 0;
+  z-index: 999999;
   border: 1px solid rgba(132, 106, 83, 0.1);
 }
 
-.profile-menu.show { display: block; display: flex; flex-direction: column; }
-
-.profile-menu a { 
-  display: block; padding: 10px 15px; 
-  color: var(--muted); font-weight: 600; font-size: 0.9rem;
+.profile-menu.show {
+  display: block;
+  display: flex;
+  flex-direction: column;
 }
 
-.profile-menu a:hover { background: var(--bg); color: var(--accent); }
+.profile-menu a {
+  display: block;
+  padding: 10px 15px;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.profile-menu a:hover {
+  background: var(--bg);
+  color: var(--accent);
+}
 
 /* ==========================================================================
    RECHERCHE
    ========================================================================== */
-.search { text-align: center; margin: 3rem 0; }
-.search input {
-  padding: 0.8rem 1.5rem; border-radius: 999px;
-  border: 1px solid rgba(132,106,83,0.25); width: 60%; max-width: 520px;
-  background: var(--card); color: var(--accent); outline: none;
+.search {
+  text-align: center;
+  margin: 3rem 0;
 }
+
+.search input {
+  padding: 0.8rem 1.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(132, 106, 83, 0.25);
+  width: 60%;
+  max-width: 520px;
+  background: var(--accent-5);
+  color: var(--accent);
+  outline: none;
+}
+
 .search button {
-  background: var(--accent); border: none; color: white;
-  padding: 0.8rem 1.5rem; border-radius: 999px; margin-left: 5px; cursor: pointer;
+  background: var(--accent-3);
+  color: white;
+  padding: 0.8rem 1.5rem;
+  border-radius: 999px;
+  margin-left: 5px;
+  cursor: pointer;
   font-weight: 600;
 }
 
 /* ==========================================================================
    TITRE ET GRILLE DE LIVRES
    ========================================================================== */
-#livre { padding: 40px 0; }
+#livre {
+  padding: 40px 0;
+}
 
 #livre h2 {
   text-align: center;
@@ -162,56 +364,145 @@ a { text-decoration: none; transition: var(--transition); }
 }
 
 .grille-livres {
-  display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 40px; 
-  max-width: var(--max-width); 
-  margin: 0 auto; padding: 0 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 240px));
+  gap: 40px;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 20px;
 }
 
 .livre {
-  background: var(--card); border-radius: 15px;
-  box-shadow: 0 8px 25px rgba(0,0,0,0.06); overflow: hidden;
-  transition: transform 0.3s ease; text-align: left;
+  background: var(--card);
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  text-align: left;
 }
 
-.livre:hover { transform: translateY(-10px); }
-.livre img { width: 100%; height: 320px; object-fit: cover; }
-.livre h3 { margin: 15px 15px 5px; color: var(--accent); font-size: 1.1rem; }
-.livre p { padding: 0 15px 20px; font-size: 0.85rem; color: var(--muted); }
+.livre:hover {
+  transform: translateY(-10px);
+}
+
+.livre img {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+}
+
+.livre h3 {
+  margin: 15px 15px 5px;
+  color: var(--accent);
+  font-size: 1.1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.livre {
+  height: 100%;
+}
+
+.grille-livres {
+  align-items: start;
+}
+
+.livre h3 {
+  min-height: 2.8rem;
+}
+
+.livre p {
+  padding: 0 15px 20px;
+  font-size: 0.85rem;
+  color: var(--accent);
+}
 
 /* ==========================================================================
    FORMULAIRE D'INSCRIPTION / CONNEXION
    ========================================================================== */
 .auth-card {
-  background: var(--card); width: 100%; max-width: 450px; padding: 2.5rem;
-  border-radius: var(--radius); box-shadow: var(--shadow);
-  margin: 40px auto; border: 1px solid rgba(132, 106, 83, 0.1);
+  background: var(--card);
+  width: 100%;
+  max-width: 450px;
+  padding: 2.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin: 40px auto;
+  border: 1px solid rgba(132, 106, 83, 0.1);
 }
 
-.auth-card h2 { color: var(--accent); margin-bottom: 10px; }
+.auth-card h2 {
+  color: var(--accent);
+  margin-bottom: 10px;
+}
 
-.form-group { margin-bottom: 1.2rem; text-align: left; }
-.form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: var(--accent); }
+.form-group {
+  margin-bottom: 1.2rem;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: var(--accent);
+}
 
 .form-group input {
-  width: 100%; padding: 0.8rem; border-radius: 8px;
-  border: 1px solid rgba(132, 106, 83, 0.25); background: var(--bg);
-  color: var(--accent); outline: none;
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #000000;
+  background: var(--accent-5);
+  color: var(--accent);
+  outline: none;
 }
 
 .btn--full {
-  width: 100%; background: var(--accent); color: white;
-  padding: 12px; border-radius: 8px; border: none;
-  cursor: pointer; font-weight: 600; margin-top: 10px;
+  width: 100%;
+  background: var(--bg);
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 10px;
 }
 
-.btn--full:hover { opacity: 0.9; }
+.btn--full:hover {
+  opacity: 0.9;
+}
 
-.auth-footer { margin-top: 1.5rem; text-align: center; font-size: 0.9rem; }
-.auth-footer a { color: var(--accent-2); font-weight: 700; }
+.auth-footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.auth-footer a {
+  color: var(--accent-2);
+  font-weight: 700;
+}
 
 /* ==========================================================================
    FOOTER
    ========================================================================== */
-.footer { text-align: center; padding: 2rem; background: var(--card); margin-top: 4rem; }
+.footer {
+  position: fixed;
+  text-align: center;
+  width: 100%;
+  margin-top: 2rem;
+  position: fixed;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.footer p {
+  color: white;
+  font-weight: 600;
+}

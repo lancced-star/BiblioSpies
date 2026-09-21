@@ -3,6 +3,9 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 if (isset($_SESSION['user_id'])) { header('Location: index.php'); exit; }
 require 'header.php';
 ?>
+<?php if (!empty($erreurMotInterdit)): ?>
+  <div class="erreur"><?php echo htmlspecialchars($erreurMotInterdit); ?></div>
+<?php endif; ?>
 
 <main class="auth-wrapper">
   <section class="auth-card">
@@ -49,7 +52,7 @@ require 'header.php';
 
       <?php unset($_SESSION['old']); ?>
 
-      <button type="submit" class="btn btn--full" style="margin-top:10px;">
+  <button type="submit" style="padding:11px 24px;background: var(--accent-3); font-size:0.9rem;color: white;cursor: pointer;border-radius:8px;font-weight: 600; text-align:center;width:100%;">
         🔐 Générer ma carte d'agent
       </button>
     </form>

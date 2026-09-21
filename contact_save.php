@@ -1,5 +1,5 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) session_start();
+require 'session_init.php';
 require 'connexion-bdd.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -17,6 +17,12 @@ $message    = trim($_POST['message']    ?? '');
 
 // ── Validations ──────────────────────────────────────────────
 $erreurs = [];
+
+// Bloquer les demandes de récupération d'accès pour les comptes admin
+if (isset($_SESSION['user_id']) && !empty($_SESSION['is_admin']) && $sujet === 'Accès perdu (pseudo/code oublié)') {
+    $erreurs[] = 'Les comptes administrateur ne peuvent pas utiliser cette fonctionnalité.';
+}
+
 if (empty($prenom))              $erreurs[] = 'Le prénom est obligatoire.';
 if (empty($nom))                 $erreurs[] = 'Le nom est obligatoire.';
 if (empty($sujet))               $erreurs[] = 'Veuillez choisir un sujet.';

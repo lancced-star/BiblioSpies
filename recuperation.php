@@ -1,6 +1,28 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require 'connexion-bdd.php';
+
+// Bloquer l'accès aux comptes admin et aux noms contenant "admin"
+$bloquerAcces = false;
+if (isset($_SESSION['user_id'])) {
+    if (!empty($_SESSION['is_admin'])) {
+        $bloquerAcces = true;
+    } else {
+        // Vérifier si le nom/prénom/pseudo contient "admin" (insensible à la casse)
+        $nomComplet = strtolower(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '') . ' ' . ($_SESSION['username'] ?? ''));
+        if (strpos($nomComplet, 'admin') !== false) {
+            $bloquerAcces = true;
+        }
+    }
+}
+
+if ($bloquerAcces) {
+    http_response_code(403);
+    die('<h1 style="font-family:sans-serif;text-align:center;margin-top:80px">
+         🚫 Accès refusé — Cette fonctionnalité n\'est pas disponible pour les comptes administrateur
+         <br><br><a href="index.php">← Retour à l\'accueil</a></h1>');
+}
+
 require 'header.php';
 
 // Mode passé en GET (depuis login.php) ou en POST (après soumission)
@@ -15,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($carteCode)) {
             $erreur = 'Veuillez entrer votre code de carte.';
         } else {
-            $stmt = $bdd->prepare('SELECT username FROM users WHERE carte_code = :code');
+            $stmt = $bdd->prepare('SELECT username FROM users WHERE carte_code = :code AND is_admin = 0 AND LOWER(CONCAT(prenom, " ", nom, " ", username)) NOT LIKE "%admin%"');
             $stmt->execute([':code' => $carteCode]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) {
@@ -30,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($username)) {
             $erreur = 'Veuillez entrer votre pseudo.';
         } else {
-            $stmt = $bdd->prepare('SELECT username, carte_code FROM users WHERE LOWER(username) = LOWER(:username)');
+            $stmt = $bdd->prepare('SELECT username, carte_code FROM users WHERE LOWER(username) = LOWER(:username) AND is_admin = 0 AND LOWER(CONCAT(prenom, " ", nom, " ", username)) NOT LIKE "%admin%"');
             $stmt->execute([':username' => $username]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$row) {
@@ -178,15 +200,34 @@ $current = $config[$mode] ?? $config['pseudo'];
 
 <script>
 function copierCode() {
-  const code = document.getElementById('code-recupere').innerText;
-  navigator.clipboard.writeText(code).then(() => {
-    alert('✅ Code copié dans le presse-papiers !');
-  }).catch(() => {
-    const el = document.createElement('textarea');
-    el.value = code; document.body.appendChild(el);
-    el.select(); document.execCommand('copy');
-    document.body.removeChild(el); alert('✅ Code copié !');
-  });
+  const code = document.getElementById('code-recupere').innerText.trim();
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(code).then(() => {
+      alert('✅ Code copié dans le presse-papiers !');
+    }).catch(() => {
+      fallbackCopy(code);
+    });
+  } else {
+    fallbackCopy(code);
+  }
+}
+
+function fallbackCopy(text) {
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.position = 'fixed';
+  el.style.opacity  = '0';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  try {
+    document.execCommand('copy');
+    alert('✅ Code copié !');
+  } catch (e) {
+    alert('❌ Impossible de copier automatiquement. Votre code : ' + text);
+  }
+  document.body.removeChild(el);
 }
 </script>
 

@@ -125,28 +125,38 @@ function updateThemeIcon(isDark) {
     }
 }
 
-// Profile menu toggle
-document.addEventListener('click', (e) => {
-    const btn = document.getElementById('profileBtn');
-    const menu = document.getElementById('profileMenu');
-    if (!btn || !menu) return;
-
-    if (btn.contains(e.target)) {
-        const shown = menu.classList.toggle('show');
-        btn.setAttribute('aria-expanded', shown ? 'true' : 'false');
-        menu.setAttribute('aria-hidden', shown ? 'false' : 'true');
-        return;
-    }
-
-    // click outside -> close
-    if (!menu.contains(e.target)) {
-        if (menu.classList.contains('show')) {
-            menu.classList.remove('show');
-            btn.setAttribute('aria-expanded', 'false');
-            menu.setAttribute('aria-hidden', 'true');
-        }
-    }
-});
+ // Profile menu toggle — position fixed calculée dynamiquement
+  function positionProfileMenu() {
+      const btn  = document.getElementById('profileBtn');
+      const menu = document.getElementById('profileMenu');
+      if (!btn || !menu) return;
+      const rect = btn.getBoundingClientRect();
+      menu.style.top   = (rect.bottom + 8) + 'px';
+      menu.style.right = (window.innerWidth - rect.right) + 'px';
+      menu.style.left  = 'auto';
+  }
+  document.addEventListener('click', (e) => {
+      const btn  = document.getElementById('profileBtn');
+      const menu = document.getElementById('profileMenu');
+      if (!btn || !menu) return;
+      if (btn.contains(e.target)) {
+          const willShow = !menu.classList.contains('show');
+          if (willShow) positionProfileMenu();
+          menu.classList.toggle('show', willShow);
+          btn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+          menu.setAttribute('aria-hidden', willShow ? 'false' : 'true');
+          return;
+      }
+      if (!menu.contains(e.target)) {
+          menu.classList.remove('show');
+          btn.setAttribute('aria-expanded', 'false');
+          menu.setAttribute('aria-hidden', 'true');
+      }
+  });
+  window.addEventListener('resize', () => {
+      const menu = document.getElementById('profileMenu');
+      if (menu && menu.classList.contains('show')) positionProfileMenu();
+  });
 
 // close on Escape
 document.addEventListener('keydown', (e) => {

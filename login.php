@@ -4,34 +4,49 @@ require 'connexion-bdd.php';
 
 if (isset($_SESSION['user_id'])) { header('Location: index.php'); exit; }
 
+// Générer token CSRF si inexistant
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 $erreur = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username  = trim($_POST['username']   ?? '');
-    $carteCode = trim($_POST['carte_code'] ?? '');
-
-    if (empty($username) || empty($carteCode)) {
-        $erreur = 'Les deux champs sont obligatoires.';
+    // Vérifier token CSRF
+    if (!isset($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        $erreur = 'Session expirée. Actualisez la page.';
     } else {
-        $stmt = $bdd->prepare('SELECT id, prenom, nom, username, is_admin FROM users WHERE username = :username AND carte_code = :carte_code');
-        $stmt->execute([':username' => $username, ':carte_code' => $carteCode]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $username  = trim($_POST['username']   ?? '');
+        $carteCode = trim($_POST['carte_code'] ?? '');
 
-        if ($user) {
-            // Connexion réussie
-            $_SESSION['user_id']   = $user['id'];
-            $_SESSION['username']  = $user['username'];
-            $_SESSION['is_admin']  = $user['is_admin'];
-            header('Location: index.php');
-            exit;
+        if (empty($username) || empty($carteCode)) {
+            $erreur = 'Les deux champs sont obligatoires.';
         } else {
-            $erreur = '❌ Pseudo ou code de carte incorrect.';
+            $stmt = $bdd->prepare('SELECT id, prenom, nom, username, is_admin FROM users WHERE username = :username AND carte_code = :carte_code');
+            $stmt->execute([':username' => $username, ':carte_code' => $carteCode]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($user) {
+                // Régénérer l'ID de session pour éviter session fixation
+                session_regenerate_id(true);
+                // Connexion réussie
+                $_SESSION['user_id']   = $user['id'];
+                $_SESSION['username']  = $user['username'];
+                $_SESSION['is_admin']  = $user['is_admin'];
+                header('Location: index.php');
+                exit;
+            } else {
+                $erreur = '❌ Pseudo ou code de carte incorrect.';
+            }
         }
     }
 }
 
 require 'header.php';
 ?>
+<?php if (!empty($erreurMotInterdit)): ?>
+  <div class="erreur"><?php echo htmlspecialchars($erreurMotInterdit); ?></div>
+<?php endif; ?>
 
 <main class="auth-wrapper">
   <section class="auth-card">
@@ -56,6 +71,7 @@ require 'header.php';
     <?php endif; ?>
 
     <form method="post" action="login.php" class="auth-form">
+      <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
 
       <div class="form-group">
         <label for="username">Pseudo</label>
@@ -76,7 +92,7 @@ require 'header.php';
         </small>
       </div>
 
-      <button type="submit" class="btn btn--full" style="margin-top:10px;">
+  <button type="submit" style="padding:11px 24px;background: var(--accent-3); font-size:0.9rem;color: white;cursor: pointer;border-radius:8px;font-weight: 600; text-align:center;width:100%;">
         → Entrer dans les archives
       </button>
 

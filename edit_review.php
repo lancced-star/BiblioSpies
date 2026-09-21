@@ -1,36 +1,29 @@
 <?php
 require 'connexion-bdd.php';
+if (session_status() === PHP_SESSION_NONE) session_start();
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header('Location: index.php');
-    exit;
-}
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: index.php'); exit; }
 
-$id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-$isbn = isset($_POST['isbn']) ? trim($_POST['isbn']) : '';
-$name = isset($_POST['name']) ? trim($_POST['name']) : null;
-$rating = isset($_POST['rating']) ? (int)$_POST['rating'] : null;
-$review = isset($_POST['review']) ? trim($_POST['review']) : '';
+$id     = (int)($_POST['id']     ?? 0);
+$isbn   = trim($_POST['isbn']    ?? '');
+$rating = (int)($_POST['rating'] ?? 3);
+$text   = trim($_POST['review']  ?? '');
 
-if ($id <= 0 || empty($review)) {
-    header('Location: book-page.php?isbn=' . urlencode($isbn) . '&edited=0');
-    exit;
-}
+if ($id <= 0 || empty($text)) { header('Location: book-page.php?isbn=' . urlencode($isbn) . '&edited=0'); exit; }
+if (empty($_SESSION['user_id'])) { header('Location: login.php'); exit; }
+
+$userId  = (int)$_SESSION['user_id'];
+$isAdmin = !empty($_SESSION['is_admin']);
 
 try {
-    $stmt = $bdd->prepare('UPDATE review SET name = :name, rating = :rating, review = :review WHERE id = :id');
-    $stmt->execute([
-        ':name' => $name,
-        ':rating' => $rating,
-        ':review' => $review,
-        ':id' => $id
-    ]);
-
-    header('Location: book-page.php?isbn=' . urlencode($isbn) . '&edited=1');
-    exit;
+    if ($isAdmin) {
+        $bdd->prepare("UPDATE `avis` SET `rating`=?, `contenu`=? WHERE `id`=?")
+            ->execute([$rating, $text, $id]);
+    } else {
+        $bdd->prepare("UPDATE `avis` SET `rating`=?, `contenu`=? WHERE `id`=? AND `user_id`=?")
+            ->execute([$rating, $text, $id, $userId]);
+    }
+    header('Location: book-page.php?isbn=' . urlencode($isbn) . '&edited=1'); exit;
 } catch (Exception $e) {
-    header('Location: book-page.php?isbn=' . urlencode($isbn) . '&edited=0');
-    exit;
+    header('Location: book-page.php?isbn=' . urlencode($isbn) . '&edited=0'); exit;
 }
-
-?>

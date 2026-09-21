@@ -75,9 +75,19 @@ $pseudo_connecte = $_SESSION['username'] ?? '';
         <div class="form-group">
           <label>Sujet *</label>
           <select name="sujet" required
-                  style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid rgba(132,106,83,0.25); background:var(--bg); color:var(--muted);">
+                  style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #000000; background:var(--accent-5); color:var(--accent); outline: none;">
             <option value="">— Choisissez un sujet —</option>
+            <?php 
+            // Vérifier si l'utilisateur est admin ou a "admin" dans son nom
+            $isAdminOrAdminName = !empty($_SESSION['is_admin']);
+            if (!$isAdminOrAdminName && isset($_SESSION['user_id'])) {
+                $nomComplet = strtolower(($_SESSION['prenom'] ?? '') . ' ' . ($_SESSION['nom'] ?? '') . ' ' . ($_SESSION['username'] ?? ''));
+                $isAdminOrAdminName = strpos($nomComplet, 'admin') !== false;
+            }
+            if (!$isAdminOrAdminName): 
+            ?>
             <option value="Accès perdu (pseudo/code oublié)"    <?php echo (($_SESSION['old_contact']['sujet'] ?? '') === 'Accès perdu (pseudo/code oublié)')    ? 'selected' : ''; ?>>🔐 Accès perdu (pseudo/code oublié)</option>
+            <?php endif; ?>
             <option value="Problème avec mon compte"            <?php echo (($_SESSION['old_contact']['sujet'] ?? '') === 'Problème avec mon compte')            ? 'selected' : ''; ?>>👤 Problème avec mon compte</option>
             <option value="Signaler un contenu"                 <?php echo (($_SESSION['old_contact']['sujet'] ?? '') === 'Signaler un contenu')                 ? 'selected' : ''; ?>>🚩 Signaler un contenu</option>
             <option value="Question générale"                   <?php echo (($_SESSION['old_contact']['sujet'] ?? '') === 'Question générale')                   ? 'selected' : ''; ?>>💬 Question générale</option>
@@ -90,14 +100,16 @@ $pseudo_connecte = $_SESSION['username'] ?? '';
           <label>Message *</label>
           <textarea name="message" rows="5" required
                     placeholder="Décrivez votre demande..."
-                    style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid rgba(132,106,83,0.25); background:var(--bg); color:var(--muted); resize:vertical; font-family:inherit;"><?php echo htmlspecialchars($_SESSION['old_contact']['message'] ?? ''); ?></textarea>
+                    style="width:100%; padding:0.8rem; border-radius:8px; border:1px solid #000000; background:var(--accent-5); color:var(--accent); outline:none; resize:vertical; "><?php echo htmlspecialchars($_SESSION['old_contact']['message'] ?? ''); ?></textarea>
         </div>
 
         <?php unset($_SESSION['old_contact']); ?>
 
-        <button type="submit" class="btn btn--full" style="margin-top:6px;">
-          📨 Envoyer le message
-        </button>
+        <div style="text-align: center;">
+  <button type="submit" style="padding:11px 24px;background: var(--accent-3); font-size:0.9rem;color: white;cursor: pointer;border-radius:8px;font-weight: 600; text-align:center;width:100%;">
+    📨 Envoyer le message
+  </button>
+</div>
 
       </form>
 

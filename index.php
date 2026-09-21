@@ -19,10 +19,13 @@
   $livre = $req->fetchAll(); ?>
 
     <section class="search">
-      <h2 class="visually-hidden">Recherche</h2>
-      <input type="text" id="searchInput" placeholder="Rechercher un livre, une enquête">
-      <button id="searchBtn">Rechercher</button>
+      <input type="text" id="searchInput" placeholder="Rechercher un livre, une enquête, un auteur..."
+             oninput="searchBooks(this.value)" autocomplete="off">
+      <button id="searchBtn" onclick="searchBooks(document.getElementById('searchInput').value)">Rechercher</button>
     </section>
+    <div id="searchNoResult" style="display:none;text-align:center;padding:40px;color:var(--muted);font-size:1rem;">
+      Aucun livre trouvé pour cette recherche.
+    </div>
 
     <div id="bookModal" class="modal" style="display:none">
       <div class="modal-content" id="bookModalContent"></div>
@@ -38,7 +41,11 @@
           $auteur = !empty($book['auteur']) ? $book['auteur'] : 'Auteur inconnu';
           $date = !empty($book['date_publication']) ? $book['date_publication'] : (!empty($book['annee']) ? $book['annee'] : '—');
         ?>
-        <a href="book-page.php?isbn=<?php echo urlencode($book['isbn']); ?>" class="book-link" data-isbn="<?php echo htmlspecialchars($book['isbn']); ?>">
+        <a href="book-page.php?isbn=<?php echo urlencode($book['isbn']); ?>" class="book-link"
+           data-isbn="<?php echo htmlspecialchars($book['isbn']); ?>"
+           data-titre="<?php echo strtolower(htmlspecialchars($titre)); ?>"
+           data-auteur="<?php echo strtolower(htmlspecialchars($auteur)); ?>"
+           data-resume="<?php echo strtolower(htmlspecialchars(substr($book['resume'] ?? '', 0, 200))); ?>">
           <div class="livre">
             <img src="<?php echo htmlspecialchars($img); ?>" alt="<?php echo htmlspecialchars($titre); ?>">
             <h3><?php echo htmlspecialchars($titre); ?></h3>
@@ -50,4 +57,36 @@
     </section>
 
 
+  <script>
+  function normalizeStr(s) {
+    return String(s)
+      .replace(/[\u2018\u2019\u201A\u201B\u2032\u0060]/g, "'")
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  }
+
+  function searchBooks(q) {
+    const query = normalizeStr(q.trim());
+    const links = document.querySelectorAll('.book-link');
+    let visible = 0;
+    links.forEach(link => {
+      const t = normalizeStr((link.dataset.titre || '') + ' ' + (link.dataset.auteur || '') + ' ' + (link.dataset.resume || ''));
+      if (!query || t.includes(query)) {
+        link.style.display = '';
+        visible++;
+      } else {
+        link.style.display = 'none';
+      }
+    });
+    const noResult = document.getElementById('searchNoResult');
+    if (noResult) noResult.style.display = (visible === 0 && query) ? 'block' : 'none';
+  }
+  // Allow Enter key
+  document.addEventListener('DOMContentLoaded', () => {
+    const inp = document.getElementById('searchInput');
+    if (inp) inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') searchBooks(inp.value);
+    });
+  });
+  </script>
   <?php require 'footer.php'; ?>
